@@ -1,4 +1,4 @@
-package com.pingcircle.pingCircle;
+package com.pingcircle;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
