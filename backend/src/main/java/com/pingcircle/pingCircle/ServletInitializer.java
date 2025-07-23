@@ -1,4 +1,4 @@
-package com.pingcircle;
+package com.pingcircle.pingCircle;
 
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
