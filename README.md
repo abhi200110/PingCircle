@@ -1,1 +1,1 @@
-# PingCircle 
+# PingCircle- A web based chat application
