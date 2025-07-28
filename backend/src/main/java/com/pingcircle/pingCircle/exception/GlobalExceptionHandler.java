@@ -1,4 +1,4 @@
-package com.chat_app.chat.exception;
+package com.pingcircle.pingCircle.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
