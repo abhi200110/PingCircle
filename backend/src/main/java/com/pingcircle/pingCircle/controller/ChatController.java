@@ -26,7 +26,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class ChatController {
-
+// This controller handles user-related operations such as login, signup, searching users, managing contacts, and handling chat messages.
     private final SimpMessagingTemplate simpMessagingTemplate;
     private final ChatService chatService;
     private final UserService userService;
