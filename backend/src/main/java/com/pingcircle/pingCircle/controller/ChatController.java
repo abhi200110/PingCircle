@@ -93,7 +93,8 @@ public class ChatController {
 
         return message;
     }
-
+// This method handles private messages sent to specific users.
+    // It uses SimpMessagingTemplate to send the message to the specified user.
     @MessageMapping("/private-message")
     public void privateMessage(Message message) {
         String receiver = message.getReceiverName();
