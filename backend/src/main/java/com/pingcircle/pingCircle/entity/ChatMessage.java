@@ -1,6 +1,6 @@
 package com.pingcircle.pingCircle.entity;
 
-import com.chat_app.chat.model.Status;
+import com.pingcircle.pingCircle.model.Status;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
