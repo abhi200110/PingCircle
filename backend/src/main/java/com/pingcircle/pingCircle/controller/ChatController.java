@@ -1,16 +1,9 @@
 package com.pingcircle.pingCircle.controller;
 
 
-import com.chat_app.chat.entity.ChatMessage;
-import com.chat_app.chat.entity.Users;
-import com.chat_app.chat.model.LoginRequest;
-import com.chat_app.chat.model.LoginResponse;
-import com.chat_app.chat.model.Message;
-import com.chat_app.chat.model.PinUserRequest;
-import com.chat_app.chat.model.UserDto;
-import com.chat_app.chat.service.ChatService;
-import com.chat_app.chat.service.UserService;
-import lombok.RequiredArgsConstructor;
+
+
+
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +11,15 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
+
+import com.pingcircle.pingCircle.entity.Users;
+import com.pingcircle.pingCircle.model.LoginRequest;
+import com.pingcircle.pingCircle.model.LoginResponse;
+import com.pingcircle.pingCircle.model.UserDto;
+import com.pingcircle.pingCircle.service.ChatService;
+import com.pingcircle.pingCircle.service.UserService;
+
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Set;
@@ -162,3 +164,4 @@ public class ChatController {
     }
 }
 
+>>>>>>> b9c271a48d6320be89b3a73f0cfedb644378e738
