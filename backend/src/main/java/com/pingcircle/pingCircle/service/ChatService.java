@@ -4,10 +4,12 @@ import java.util.List;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.pingcircle.pingCircle.entity.ChatMessage;
 import com.pingcircle.pingCircle.model.Message;
+import com.pingcircle.pingCircle.model.Status;
 import com.pingcircle.pingCircle.repository.ChatMessageRepository;
 
 import lombok.RequiredArgsConstructor;
