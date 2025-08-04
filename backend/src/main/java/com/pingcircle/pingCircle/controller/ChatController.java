@@ -12,10 +12,12 @@ import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
+import com.pingcircle.pingCircle.entity.ChatMessage;
 import com.pingcircle.pingCircle.entity.Users;
 import com.pingcircle.pingCircle.model.LoginRequest;
 import com.pingcircle.pingCircle.model.LoginResponse;
 import com.pingcircle.pingCircle.model.Message;
+import com.pingcircle.pingCircle.model.PinUserRequest;
 import com.pingcircle.pingCircle.model.UserDto;
 import com.pingcircle.pingCircle.service.ChatService;
 import com.pingcircle.pingCircle.service.UserService;
