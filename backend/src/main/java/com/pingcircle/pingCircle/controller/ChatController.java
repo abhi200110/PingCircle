@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import com.pingcircle.pingCircle.entity.Users;
 import com.pingcircle.pingCircle.model.LoginRequest;
 import com.pingcircle.pingCircle.model.LoginResponse;
+import com.pingcircle.pingCircle.model.Message;
 import com.pingcircle.pingCircle.model.UserDto;
 import com.pingcircle.pingCircle.service.ChatService;
 import com.pingcircle.pingCircle.service.UserService;
