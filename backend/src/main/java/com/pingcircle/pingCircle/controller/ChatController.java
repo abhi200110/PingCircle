@@ -1,14 +1,14 @@
 package com.pingcircle.pingCircle.Controller;
 
-import com.chat_app.chat.entity.ChatMessage;
-import com.chat_app.chat.entity.Users;
-import com.chat_app.chat.model.LoginRequest;
-import com.chat_app.chat.model.LoginResponse;
-import com.chat_app.chat.model.Message;
-import com.chat_app.chat.model.PinUserRequest;
-import com.chat_app.chat.model.UserDto;
-import com.chat_app.chat.service.ChatService;
-import com.chat_app.chat.service.UserService;
+import com.pingcircle.pingCircle.entity.ChatMessage;
+import com.pingcircle.pingCircle.entity.Users;
+import com.pingcircle.pingCircle.model.LoginRequest;
+import com.pingcircle.pingCircle.model.LoginResponse;
+import com.pingcircle.pingCircle.model.Message;
+import com.pingcircle.pingCircle.model.PinUserRequest;
+import com.pingcircle.pingCircle.model.UserDto;
+import com.pingcircle.pingCircle.service.ChatService;
+import com.pingcircle.pingCircle.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
