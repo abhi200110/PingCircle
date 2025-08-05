@@ -1,4 +1,4 @@
-package com.pingcircle.pingCircle.configuration;
+package com.chat_app.chat.configuration;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
