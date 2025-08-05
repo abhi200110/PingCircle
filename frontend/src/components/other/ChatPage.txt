@@ -1,0 +1,150 @@
+// import { useEffect, useState } from "react";
+// import { Link, useNavigate } from "react-router-dom";
+// import SockJS from "sockjs-client";
+// import Stomp from "stompjs";
+// import SearchBar from "./SearchBar";
+
+// let stompClient = null;
+
+// const ChatPage2 = () => {
+//   const [messages, setMessages] = useState([]);
+//   const [message, setMessage] = useState("");
+//   const navigate = useNavigate();
+//   const [selectedUser, setSelectedUser] = useState(null);
+
+//   const handleLogout = () => {
+//     localStorage.removeItem("chat-username");
+//     if (stompClient) stompClient.disconnect();
+//     navigate("/login");
+//   };
+
+//   const showMessage = (newMessage) => {
+//     setMessages((prevMessages) => [newMessage, ...prevMessages]);
+//   };
+
+//   const connect = () => {
+//     const socket = new SockJS("http://localhost:8080/ws");
+//     stompClient = Stomp.over(socket);
+
+//     stompClient.connect({}, (frame) => {
+//       console.log("Connected : " + frame);
+
+//       stompClient.subscribe("/topic/return-to", (response) => {
+//         showMessage(JSON.parse(response.body));
+//       });
+
+//       if (selectedUser) {
+//         stompClient.subscribe(
+//           `/user/${selectedUser.username}/private`,
+//           (response) => {
+//             showMessage(JSON.parse(response.body));
+//           }
+//         );
+//       }
+//     });
+//   };
+
+//   useEffect(() => {
+//     connect();
+//     return () => {
+//       if (stompClient) stompClient.disconnect();
+//     };
+//   }, [selectedUser]);
+
+//   const handlePrivateMessage = (user) => {
+//     setSelectedUser(user);
+
+//     if (stompClient) {
+//       stompClient.unsubscribe(
+//         `/user/${localStorage.getItem("chat-username")}/private`
+//       );
+//     }
+
+//     stompClient.subscribe(`/user/${user.username}/private`, (response) => {
+//       showMessage(JSON.parse(response.body));
+//     });
+//   };
+
+//   const sendMessage = () => {
+//     if (!message) return;
+
+//     stompClient.send(
+//       "/app/message",
+//       {},
+//       JSON.stringify({
+//         senderName: localStorage.getItem("chat-username"),
+//         message: message,
+//         media: "",
+//         status: "MESSAGE",
+//       })
+//     );
+
+//     setMessage("");
+//   };
+
+//   return (
+//     <div
+//       className="h-screen bg-cover"
+//       style={{ backgroundImage: `url("http://localhost:5173/green.gif")` }}
+//     >
+//       <div className="p-5">
+//         <div className="flex items-center justify-between gap-2">
+//           <SearchBar onUserSelect={handlePrivateMessage} />
+//           <button
+//             className="p-2 bg-gray-800 text-white rounded"
+//             onClick={handleLogout}
+//           >
+//             Logout
+//           </button>
+//           <Link to="/test" className="p-2 bg-gray-800 text-white rounded">
+//             Test
+//           </Link>
+//         </div>
+//       </div>
+//       <div className="flex justify-start p-5">
+//         <div className="p-2 min-w-[200px] bg-white rounded-xl shadow-md">
+//           {selectedUser
+//             ? `Chatting with ${selectedUser.username}`
+//             : "Select a user to chat"}
+//         </div>
+//         <div className="max-h-[400px] overflow-y-scroll w-full ml-5">
+//           {messages.length > 0 ? (
+//             <div className="bg-white rounded shadow-md p-3 max-w-lg overflow-y-scroll">
+//               {messages.map((message) => (
+//                 <p key={message.id} className="flex flex-col space-y-2">
+//                   <span className="font-bold text-lg">
+//                     {message.senderName}:
+//                   </span>
+//                   <span>{message.message && <p>{message.message}</p>}</span>
+//                 </p>
+//               ))}
+//             </div>
+//           ) : (
+//             <div className="bg-white rounded shadow-md p-3 max-w-2xl overflow-y-scroll">
+//               No Messages
+//             </div>
+//           )}
+//         </div>
+//       </div>
+//       <div className="fixed bottom-0 right-0 left-0 p-5">
+//         <div className="flex items-center gap-2">
+//           <input
+//             type="text"
+//             className="rounded-lg p-2 border border-gray-300 w-full max-w-sm"
+//             placeholder="Message"
+//             value={message}
+//             onChange={(e) => setMessage(e.target.value)}
+//           />
+//           <button
+//             className="p-2 bg-gray-800 text-white rounded"
+//             onClick={sendMessage}
+//           >
+//             Send
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default ChatPage2;
