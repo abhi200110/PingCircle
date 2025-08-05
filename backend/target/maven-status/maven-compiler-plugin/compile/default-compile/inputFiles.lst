@@ -5,13 +5,16 @@ C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pi
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\model\LoginResponse.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\entity\Users.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\service\JwtService.java
+C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\configuration\WebConfig.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\service\ChatService.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\model\LoginRequest.java
+C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\configuration\SecurityConfig.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\model\UserDto.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\repository\ChatMessageRepository.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\model\Message.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\ServletInitializer.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\entity\ChatMessage.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\service\UserService.java
+C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\configuration\WebSocketConfig.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\repository\UserRepository.java
 C:\Users\abhij\OneDrive\Documents\GitHub\PingCircle\backend\src\main\java\com\pingcircle\pingCircle\PingCircleApplication.java
