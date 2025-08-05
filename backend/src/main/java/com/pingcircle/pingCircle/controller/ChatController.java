@@ -1,4 +1,4 @@
-package com.chat_app.chat.controller;
+package com.pingcircle.pingCircle.Controller;
 
 import com.chat_app.chat.entity.ChatMessage;
 import com.chat_app.chat.entity.Users;
