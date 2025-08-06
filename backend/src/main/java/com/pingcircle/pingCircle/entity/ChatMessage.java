@@ -17,10 +17,6 @@ public class ChatMessage {
     private String senderName;
     private String receiverName;
     private String message;
-    @Lob
-    @Column(columnDefinition = "TEXT")
-    private String media;
-    private String mediaType;
 
     @Enumerated(EnumType.STRING)
     private Status status;
@@ -29,14 +25,11 @@ public class ChatMessage {
     private Long timestamp;
 
     // Constructors
-    public ChatMessage(String senderName, String receiverName, String message, String media, String mediaType, Status status, Long timestamp) {
+    public ChatMessage(String senderName, String receiverName, String message, Status status, Long timestamp) {
         this.senderName = senderName;
         this.receiverName = receiverName;
         this.message = message;
-        this.media = media;
-        this.mediaType = mediaType;
         this.status = status;
         this.timestamp = timestamp;
     }
 }
-

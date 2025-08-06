@@ -27,7 +27,9 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    //
+    // Configures the security filter chain
+    // This method defines which endpoints are public and which require authentication
+    // It also configures CORS and session management
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -47,15 +49,26 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints (no authentication required)
                 .requestMatchers(
-                    "/api/users/login",           // User login
-                    "/api/users/signup",          // User registration
-                    "/api/users/search",          // Search users (for finding chat partners)
-                    "/api/users/api/messages/history/**", // Chat history (needed for initial load)
-                    "/api/users/pinned-users",    // Get pinned users list
-                    "/api/users/pin-user",        // Pin/unpin users
-                    "/api/users/is-pinned",       // Check if user is pinned
-                    "/ws/**"                      // WebSocket endpoints for real-time chat
-                ).permitAll()
+    "/api/users/login",//user login
+                "/api/users/signup", //user signup
+                "/api/users/search",//search users
+                "/api/users/contacts",//get user contacts
+                "/api/users/unread-count", //get unread message count
+                "/api/users/mark-read", //mark message as read
+                "/api/users/mark-all-read", //mark all messages as read
+                "/api/users/pinned-users", //get pinned users
+                "/api/users/pin-user",//pin user
+                "/api/users/is-pinned",//check if user is pinned
+                "/api/users/api/messages/history/**",//get chat history
+                "/api/users/api/messages/public/history",//get public chat history
+                "/api/users/api/messages/delete/**",//delete chat
+                "/api/users/api/messages/delete/public",//delete public chat
+                "/api/users/online-users",//get online users
+                "/ws/**", //websocket endpoints
+                "/app/**", //app endpoints
+                "/chatroom/**", //chatroom endpoints
+                "/user/**")//user endpoints
+                .permitAll()
                 
                 // All other requests require authentication
                 .anyRequest().authenticated()
