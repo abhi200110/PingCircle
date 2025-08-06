@@ -5,31 +5,36 @@ import { over } from "stompjs"; // STOMP protocol for WebSocket messaging
 import SearchBar from "../components/other/SearchBar"; // Component to search for users
 import PinnedUsers from "../components/PinnedUsers"; // Component to display pinned users
 import UserChatItem from "../components/UserChatItem"; // Component for individual user chat items
+import UserDashboard from "../components/UserDashboard"; // Component for user dashboard
+import MessageInput from "../components/MessageInput"; // Component for message input with emoji picker
 import api from "../config/axios"; // Configured axios instance with JWT authentication
 
 // Global WebSocket client variable
 var stompClient = null;
 
-export const ChatPage2 = () => {
+export const ChatPage = () => {
   // ===== STATE MANAGEMENT =====
   
   // User selection and chat state
   const [selectedUser, setSelectedUser] = useState(null); // Currently selected user to chat with
   const [receiver, setReceiver] = useState(""); // Username of the person receiving messages
   const [message, setMessage] = useState(""); // Current message being typed
-  const [media, setMedia] = useState(""); // File attachment (base64 encoded) like images ,videos
   const [tab, setTab] = useState("CHATROOM"); // Current active tab (CHATROOM or username)
   
   // Chat data storage
   const [publicChats, setPublicChats] = useState([]); // Array of public chat messages
-  const [privateChats, setPrivateChats] = useState(new Map()); // Map of private chats: {username (key): [messages](value)}
-  const [username] = useState(localStorage.getItem("chat-username")); // Current logged-in user fetched from local storage
+  const [privateChats, setPrivateChats] = useState(new Map()); // Map of private chats: {username: [messages]}
+  const [username] = useState(localStorage.getItem("chat-username")); // Current logged-in user
   const [pinnedUsers, setPinnedUsers] = useState([]); // Array of pinned usernames
   const [allUsers, setAllUsers] = useState([]); // All available users (currently unused)
+  const [isOnline, setIsOnline] = useState(true); // User online status
+  const [isSending, setIsSending] = useState(false); // Loading state for sending messages
+  const [isDeleting, setIsDeleting] = useState(false); // Loading state for deleting conversations
+  const [onlineUsers, setOnlineUsers] = useState(new Set()); // Set of online users
   
   // Navigation and refs
   const navigate = useNavigate(); // React Router navigation hook
-  const connected = useRef(false); // Ref to track WebSocket connection status (avoid duplicate connections)
+  const connected = useRef(false); // Ref to track WebSocket connection status
   const chatContainerRef = useRef(null); // Ref to chat container for auto-scroll
 
   // ===== AUTHENTICATION CHECK =====
@@ -39,22 +44,43 @@ export const ChatPage2 = () => {
   }
 
   // ===== WEB SOCKET CONNECTION MANAGEMENT =====
-  // Initialize WebSocket connection when component mounts
+  // Load initial data when component mounts
   useEffect(() => {
-    if (!connected.current) {
+    if (username) {
+      console.log("Loading initial data for user:", username);
+      fetchPinnedUsers(); // Load pinned users
+      fetchOnlineUsers(); // Load online users
       connect(); // Establish WebSocket connection
     }
-    // Cleanup: disconnect WebSocket when component unmounts (like a logout or page change).
+  }, [username]);
+
+  // Cleanup: disconnect WebSocket when component unmounts
+  useEffect(() => {
     return () => {
-      if (stompClient) {
+      if (stompClient && connected.current) {
+        userLeft(); // Send leave message
         stompClient.disconnect();
         connected.current = false;
       }
     };
-  }, []);
+  }, [stompClient]);
+
+  // Handle window beforeunload to send leave message
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (stompClient && connected.current) {
+        userLeft(); // Send leave message
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [stompClient]);
 
   // ===== USER SELECTION HANDLER =====
-  // Called when a user is selected from search or pinned users to startchat with.
+  // Called when a user is selected from search or pinned users
   const handlePrivateMessage = (user) => {
     setSelectedUser(user); // Set the selected user
     setReceiver(user.username); // Set the message receiver
@@ -94,6 +120,22 @@ export const ChatPage2 = () => {
     }
   }, [username]);
 
+  // ===== PUBLIC CHAT HISTORY LOADING EFFECT =====
+  // Load public chat history when component mounts
+  useEffect(() => {
+    if (username) {
+      fetchPublicChatHistory();
+    }
+  }, [username]);
+
+  // ===== PUBLIC CHAT HISTORY LOADING EFFECT =====
+  // Load public chat history when switching to public chat tab
+  useEffect(() => {
+    if (tab === "CHATROOM") {
+      fetchPublicChatHistory();
+    }
+  }, [tab]);
+
   // ===== PINNED USERS MANAGEMENT =====
   
   // Fetch pinned users from the backend
@@ -120,52 +162,133 @@ export const ChatPage2 = () => {
   
   // Handle public chat messages (JOIN, LEAVE, MESSAGE)
   const onMessageReceived = (payload) => {
-    const payloadData = JSON.parse(payload.body);
-    console.log("Public message received:", payloadData);
-    switch (payloadData.status) {
-      case "JOIN":
-        // When a user joins, add them to private chats list if not already there
-        if (payloadData.senderName !== username) {
-          setPrivateChats((prevChats) => {
-            const newChats = new Map(prevChats);
-            if (!newChats.has(payloadData.senderName)) {
-              newChats.set(payloadData.senderName, []); // Initialize empty chat array
-            }
+    try {
+      const payloadData = JSON.parse(payload.body);
+      console.log("=== GROUP MESSAGE RECEIVED ===");
+      console.log("Payload data:", payloadData);
+      console.log("Message status:", payloadData.status);
+      console.log("Message content:", payloadData.message);
+      console.log("Message sender:", payloadData.senderName);
+      console.log("Message receiver:", payloadData.receiverName);
+      console.log("Current public chats count:", publicChats.length);
+      console.log("Current tab:", tab);
+      
+      switch (payloadData.status) {
+        case "JOIN":
+          console.log("User joined:", payloadData.senderName);
+          // Add user to online users list
+          setOnlineUsers(prev => new Set([...prev, payloadData.senderName]));
+          // When a user joins, add them to private chats list if not already there
+          if (payloadData.senderName !== username) {
+            setPrivateChats((prevChats) => {
+              const newChats = new Map(prevChats);
+              if (!newChats.has(payloadData.senderName)) {
+                newChats.set(payloadData.senderName, []); // Initialize empty chat array
+              }
+              return newChats;
+            });
+          }
+          break;
+        case "LEAVE":
+          console.log("User left:", payloadData.senderName);
+          // Remove user from online users list
+          setOnlineUsers(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(payloadData.senderName);
+            return newSet;
+          });
+          // When a user leaves, remove them from private chats list
+          if (payloadData.senderName !== username) {
+            setPrivateChats((prevChats) => {
+              const newChats = new Map(prevChats);
+              newChats.delete(payloadData.senderName);
+              return newChats;
+            });
+          }
+          break;
+        case "MESSAGE":
+          console.log("Processing GROUP MESSAGE status");
+          console.log("Message content:", payloadData.message);
+          console.log("Message sender:", payloadData.senderName);
+          
+          // Add public message to public chat
+          setPublicChats((prev) => {
+            console.log("Previous public chats count:", prev.length);
+            console.log("Previous messages:", prev);
+            const newChats = [...prev, payloadData];
+            console.log("New public chats count:", newChats.length);
+            console.log("Added message:", payloadData);
+            console.log("Updated messages:", newChats);
             return newChats;
           });
-        }
-        break;
-      case "LEAVE":
-        // When a user leaves, remove them from private chats list
-        if (payloadData.senderName !== username) {
-          setPrivateChats((prevChats) => {
-            const newChats = new Map(prevChats);
-            newChats.delete(payloadData.senderName);
-            return newChats;
-          });
-        }
-        break;
-      case "MESSAGE":
-        // Add public message to public chat
-        setPublicChats((prev) => [...prev, payloadData]);
-        break;
-      default:
-        console.warn("Unknown status received:", payloadData.status);
+          break;
+        default:
+          console.warn("Unknown status received:", payloadData.status);
+      }
+    } catch (error) {
+      console.error("Error processing group message:", error);
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
     }
   };
 
   // Handle private messages from other users
   const onPrivateMessage = (payload) => {
-    const payloadData = JSON.parse(payload.body);
-    console.log("Private message received:", payloadData);
-    
-    // Add the received message to the sender's chat history
-    setPrivateChats((prevChats) => {
-      const newChats = new Map(prevChats);
-      const existingMessages = newChats.get(payloadData.senderName) || [];
-      newChats.set(payloadData.senderName, [...existingMessages, payloadData]); // Append new message
-      return newChats;
-    });
+    try {
+      const payloadData = JSON.parse(payload.body);
+      console.log("=== PRIVATE MESSAGE RECEIVED ===");
+      console.log("Payload data:", payloadData);
+      console.log("Current user:", username);
+      console.log("Message sender:", payloadData.senderName);
+      console.log("Message receiver:", payloadData.receiverName);
+      console.log("Message content:", payloadData.message);
+      console.log("Current tab:", tab);
+      
+      // Determine which user's chat to update
+      let targetUser;
+      if (payloadData.senderName === username) {
+        // This is a message I sent - add to receiver's chat
+        targetUser = payloadData.receiverName;
+        console.log("I sent this message, adding to receiver's chat:", targetUser);
+      } else if (payloadData.receiverName === username) {
+        // This is a message sent to me - add to sender's chat
+        targetUser = payloadData.senderName;
+        console.log("I received this message, adding to sender's chat:", targetUser);
+      } else {
+        console.log("Message not for current user, ignoring");
+        return;
+      }
+      
+      console.log("Target user for chat update:", targetUser);
+      
+      // Add the received message to the appropriate chat history
+      setPrivateChats((prevChats) => {
+        const newChats = new Map(prevChats);
+        const existingMessages = newChats.get(targetUser) || [];
+        console.log("Existing messages count for", targetUser + ":", existingMessages.length);
+        
+        // Check if message already exists to prevent duplicates
+        // Use a more precise duplicate detection based on sender, receiver, message content, and timestamp
+        const messageExists = existingMessages.some(msg => 
+          msg.senderName === payloadData.senderName &&
+          msg.receiverName === payloadData.receiverName &&
+          msg.message === payloadData.message &&
+          Math.abs((msg.timestamp || 0) - (payloadData.timestamp || 0)) < 2000 // Within 2 seconds
+        );
+        
+        if (!messageExists) {
+          const updatedMessages = [...existingMessages, payloadData];
+          console.log("✅ Message added to chat for", targetUser);
+          console.log("Updated messages count:", updatedMessages.length);
+          newChats.set(targetUser, updatedMessages);
+        } else {
+          console.log("⚠️ Message already exists, skipping");
+        }
+        return newChats;
+      });
+    } catch (error) {
+      console.error("❌ Error processing private message:", error);
+    }
   };
 
   // ===== WEB SOCKET CONNECTION FUNCTIONS =====
@@ -174,11 +297,18 @@ export const ChatPage2 = () => {
   const onConnect = () => {
     console.log("Connected to WebSocket");
     connected.current = true;
+    setIsOnline(true); // Set user as online when connected
+
+    // Add current user to online users list
+    setOnlineUsers(prev => new Set([...prev, username]));
 
     // Subscribe to public chat channel
     stompClient.subscribe("/chatroom/public", onMessageReceived);
+    console.log("Subscribed to /chatroom/public");
+    
     // Subscribe to private messages for this user
     stompClient.subscribe(`/user/${username}/private`, onPrivateMessage);
+    console.log(`Subscribed to /user/${username}/private`);
 
     userJoin(); // Send join message to public chat
   };
@@ -186,6 +316,22 @@ export const ChatPage2 = () => {
   // Called when WebSocket connection fails
   const onError = (err) => {
     console.error("WebSocket connection error:", err);
+    setIsOnline(false); // Set user as offline when connection fails
+    
+    // Remove current user from online users list
+    setOnlineUsers(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(username);
+      return newSet;
+    });
+    
+    // Try to reconnect after a delay
+    setTimeout(() => {
+      if (!connected.current) {
+        console.log("Attempting to reconnect...");
+        connect();
+      }
+    }, 5000); // Wait 5 seconds before trying to reconnect
   };
 
   // Initialize WebSocket connection
@@ -224,68 +370,80 @@ export const ChatPage2 = () => {
     navigate("/login"); // Redirect to login page
   };
 
-  // ===== FILE HANDLING FUNCTIONS =====
-  
-  // Handle file selection and conversion to base64
-  const base64ConversionForImages = (e) => {
-    if (e.target.files[0]) {
-      getBase64(e.target.files[0]); // Convert selected file to base64
-    }
-  };
-
-  // Convert file to base64 string for sending via WebSocket
-  const getBase64 = (file) => {
-    let reader = new FileReader();
-    reader.readAsDataURL(file); // Read file as data URL (base64)
-    reader.onload = () => setMedia(reader.result); // Store base64 string in state
-    reader.onerror = (error) => console.error("Error converting file:", error);
-  };
-
   // ===== MESSAGE SENDING FUNCTIONS =====
   
   // Send message to public chat room
   const sendMessage = () => {
-    if (message.trim().length > 0 || media) {
-      stompClient.send(
-        "/app/message", // Public chat endpoint
-        {},
-        JSON.stringify({
-          senderName: username,
-          status: "MESSAGE",
-          media: media, // Base64 encoded file
-          message: message,
-        })
-      );
+    if (message.trim().length > 0) {
+      setIsSending(true); // Start loading
+      
+      let chatMessage = {
+        senderName: username,
+        status: "MESSAGE",
+        message: message,
+        timestamp: Date.now(), // Add timestamp for proper ordering
+      };
+
+      console.log("=== SENDING PUBLIC MESSAGE ===");
+      console.log("Message object:", chatMessage);
+      console.log("Message content:", message);
+      console.log("Message status:", chatMessage.status);
+      console.log("WebSocket connected:", connected.current);
+      console.log("Current tab:", tab);
+
+      // Send message via WebSocket to backend
+      try {
+        stompClient.send(
+          "/app/message", // Public chat endpoint
+          {},
+          JSON.stringify(chatMessage)
+        );
+        console.log("✅ Message sent via WebSocket successfully");
+      } catch (error) {
+        console.error("❌ Error sending message via WebSocket:", error);
+      }
+
       setMessage(""); // Clear message input
-      setMedia(""); // Clear media attachment
+      setIsSending(false); // Stop loading
+    } else {
+      console.log("Message is empty, not sending");
     }
   };
 
   // Send private message to specific user
   const sendPrivate = () => {
     if (message.trim().length > 0 && receiver) {
+      setIsSending(true); // Start loading
+      
       let chatMessage = {
         senderName: username,
         receiverName: receiver, // Target user
         message: message,
-        media: media, // Base64 encoded file
         status: "MESSAGE",
         timestamp: Date.now(), // Add timestamp for proper ordering
       };
 
-      // Add message to local state immediately for instant feedback
-      setPrivateChats((prevChats) => {
-        const newChats = new Map(prevChats);
-        const existingMessages = newChats.get(receiver) || [];
-        newChats.set(receiver, [...existingMessages, chatMessage]); // Append new message
-        return newChats;
-      });
+      console.log("=== SENDING PRIVATE MESSAGE ===");
+      console.log("Message object:", chatMessage);
+      console.log("From:", username, "To:", receiver);
+      console.log("Message content:", message);
+      console.log("WebSocket connected:", connected.current);
+      console.log("Current tab:", tab);
 
-      // Send message via WebSocket to backend
-      stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
+      try {
+        // Send message via WebSocket to backend
+        stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
+        console.log("✅ Private message sent via WebSocket successfully");
 
-      setMessage(""); // Clear message input
-      setMedia(""); // Clear media attachment
+        setMessage(""); // Clear message input
+      } catch (error) {
+        console.error("❌ Error sending private message:", error);
+        // The backend will store it and deliver when the user comes back online
+      }
+      
+      setIsSending(false); // Stop loading
+    } else {
+      console.log("Message is empty or no receiver selected");
     }
   };
 
@@ -319,12 +477,20 @@ export const ChatPage2 = () => {
       if (response.status === 200) {
         // Ensure we always set an array, even if response.data is null/undefined
         const messages = response.data || [];
+        // Convert database messages to frontend format
+        const convertedMessages = messages.map(msg => ({
+          senderName: msg.senderName,
+          receiverName: msg.receiverName,
+          message: msg.message,
+          status: msg.status || "MESSAGE", // Use status from database or default to "MESSAGE"
+          timestamp: msg.timestamp
+        }));
         setPrivateChats((prevChats) => {
           const newChats = new Map(prevChats);
-          newChats.set(user2, messages); // Update chat history for this user
+          newChats.set(user2, convertedMessages); // Update chat history for this user
           return newChats;
         });
-        console.log(`Chat history loaded for ${user2}:`, messages.length, 'messages');
+        console.log(`Chat history loaded for ${user2}:`, convertedMessages.length, 'messages');
       } else {
         console.error("Failed to fetch chat history:", response.status);
       }
@@ -339,21 +505,170 @@ export const ChatPage2 = () => {
     }
   };
 
+  // Fetch public chat history from the backend
+  const fetchPublicChatHistory = async () => {
+    console.log("=== FETCHING PUBLIC CHAT HISTORY ===");
+    try {
+      const response = await api.get('/users/api/messages/public/history');
+      console.log("API response status:", response.status);
+      console.log("API response data:", response.data);
+
+      if (response.status === 200) {
+        const messages = response.data || [];
+        console.log('Raw messages from backend:', messages);
+        console.log('Number of messages received:', messages.length);
+        
+        // Filter out messages with null content and only show actual chat messages
+        const validMessages = messages.filter(msg => {
+          const isValid = msg.message && msg.message.trim() !== '';
+          console.log(`Message from ${msg.senderName}: "${msg.message}" - Valid: ${isValid}`);
+          return isValid;
+        });
+        console.log('Valid messages (with content):', validMessages.length);
+        
+        // Convert database messages to frontend format
+        const convertedMessages = validMessages.map(msg => {
+          console.log('Processing message:', msg);
+          const converted = {
+            senderName: msg.senderName || 'Unknown',
+            message: msg.message || '',
+            status: "MESSAGE", // Always set to MESSAGE for public chat
+            timestamp: msg.timestamp || Date.now()
+          };
+          console.log('Converted message:', converted);
+          return converted;
+        });
+        
+        console.log('Converted messages:', convertedMessages);
+        setPublicChats(convertedMessages);
+        console.log('Public chat history loaded:', convertedMessages.length, 'messages');
+      } else {
+        console.error("Failed to fetch public chat history:", response.status);
+        console.error("Response data:", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching public chat history:", error);
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
+      setPublicChats([]); // Set empty array on error
+    }
+  };
+
+  // Delete conversation with a specific user
+  const deleteConversation = async (targetUsername) => {
+    if (!targetUsername || targetUsername === "CHATROOM") {
+      console.log("Cannot delete public chat or invalid user");
+      return;
+    }
+
+    setIsDeleting(true);
+    console.log(`Deleting conversation with ${targetUsername}`);
+
+    try {
+      // Call backend API to delete conversation
+      const response = await api.delete(`/users/api/messages/delete/${username}/${targetUsername}`);
+      
+      if (response.status === 200) {
+        console.log(`Conversation with ${targetUsername} deleted successfully`);
+        
+        // Remove conversation from local state
+        setPrivateChats((prevChats) => {
+          const newChats = new Map(prevChats);
+          newChats.delete(targetUsername);
+          return newChats;
+        });
+
+        // If we're currently viewing this conversation, switch to public chat
+        if (tab === targetUsername) {
+          setTab("CHATROOM");
+          setReceiver("");
+          setSelectedUser(null);
+        }
+
+        // Show success message (you can add a toast notification here)
+        alert(`Your messages in the conversation with ${targetUsername} have been deleted`);
+      } else {
+        console.error("Failed to delete conversation:", response.status);
+        alert("Failed to delete conversation. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      alert("Error deleting conversation. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Delete all public chat messages
+  const deletePublicChat = async () => {
+    setIsDeleting(true);
+    console.log("Deleting public chat messages");
+
+    try {
+      // Call backend API to delete public chat
+      const response = await api.delete(`/users/api/messages/delete/public`);
+      
+      if (response.status === 200) {
+        console.log("Public chat messages deleted successfully");
+        
+        // Clear public chat from local state
+        setPublicChats([]);
+
+        // Show success message
+        alert("Public chat messages have been deleted");
+      } else {
+        console.error("Failed to delete public chat:", response.status);
+        alert("Failed to delete public chat. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error deleting public chat:", error);
+      alert("Error deleting public chat. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Fetch initial online users
+  const fetchOnlineUsers = async () => {
+    try {
+      const response = await api.get('/users/online-users');
+      console.log('Fetched online users:', response.data);
+      setOnlineUsers(new Set(response.data));
+    } catch (error) {
+      console.error('Error fetching online users:', error);
+    }
+  };
+
   // ===== RENDER UI =====
   
   return (
-    <div className="flex items-center justify-center h-screen w-[100%]">
-      <div className="flex w-full h-full">
+    <div className="d-flex flex-column vh-100">
+      {/* User Dashboard - Top */}
+      <UserDashboard 
+        username={username} 
+        isOnline={isOnline} 
+        onLogout={handleLogout} 
+      />
+
+      {/* Main Chat Area - Takes remaining height */}
+      <div className="d-flex flex-grow-1" style={{ minHeight: 0 }}>
         {/* Left Sidebar - User List and Navigation */}
-        <div className="flex flex-col w-[300px] h-full bg-gray-50 border-r border-gray-200">
+        <div className="d-flex flex-column bg-light" style={{ 
+          width: "300px", 
+          height: "100%"
+        }}>
           {/* Sidebar Header - Title and Search */}
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">Chats</h2>
+          <div className="p-4 border-bottom border-secondary bg-white">
+            <h2 className="h5 fw-semibold text-primary">Chats</h2>
             <SearchBar onUserSelect={handlePrivateMessage} /> {/* Search for users */}
           </div>
 
-          {/* Sidebar Content - Scrollable Area */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Single Scrollable Content Area - All sections in one scrollable container */}
+          <div className="flex-grow-1 bg-light sidebar-content sidebar-scroll" style={{ 
+            overflowY: "auto",
+            scrollbarWidth: "thin",
+            scrollbarColor: "#6c757d #f8f9fa"
+          }}>
             {/* Pinned Users Section - Quick access to frequently contacted users */}
             <PinnedUsers 
               currentUser={username}
@@ -378,26 +693,26 @@ export const ChatPage2 = () => {
             />
             
             {/* Public Chat Room Option - Switch to public chat */}
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-top border-secondary bg-white">
               <div
-                className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                className={`p-3 rounded cursor-pointer transition-colors ${
                   tab === "CHATROOM" 
-                    ? "bg-blue-500 text-white" // Active state
-                    : "bg-gray-100 hover:bg-gray-200 text-gray-800" // Inactive state
+                    ? "bg-primary text-white" // Active state
+                    : "bg-light hover-bg-primary hover-text-white text-dark" // Inactive state
                 }`}
                 onClick={() => setTab("CHATROOM")} // Switch to public chat
               >
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">💬</span>
-                  <span className="font-medium">Chat Room</span>
+                <div className="d-flex align-items-center gap-2">
+                  <span className="fs-5">💬</span>
+                  <span className="fw-medium">Chat Room</span>
                 </div>
               </div>
             </div>
 
             {/* Recent Chats Section - List of users with recent conversations */}
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Recent Chats</h3>
-              <div className="space-y-2">
+            <div className="p-4 bg-light">
+              <h3 className="small fw-semibold text-muted mb-3">Recent Chats</h3>
+              <div className="d-flex flex-column gap-2">
                 {/* Map through all users in privateChats to show recent conversations */}
                 {[...privateChats.keys()].map((name, index) => (
                   <UserChatItem
@@ -405,181 +720,150 @@ export const ChatPage2 = () => {
                     user={{ username: name }}
                     currentUser={username}
                     isSelected={tab === name} // Highlight if this user is selected
+                    isOnline={onlineUsers.has(name)} // Check if user is online
                     onUserSelect={(user) => {
                       tabReceiverSet(user.username); // Switch to user's chat
                       fetchChatHistory(username, user.username); // Load chat history
                     }}
                     onPinChange={handlePinChange} // Handle pin/unpin actions
+                    onDeleteConversation={deleteConversation} // Pass delete function
                   />
                 ))}
               </div>
             </div>
+            
+            {/* Bottom padding for better scrolling experience */}
+            <div className="pb-4"></div>
           </div>
         </div>
 
-        {/* Right Side - Chat Area */}
-        <div className="flex flex-col flex-1 mt-3">
-          {/* Chat Messages Display Area */}
-          <div
-            ref={chatContainerRef} // Ref for auto-scrolling
-            className="p-3 flex-grow overflow-auto bg-gray-300 border border-green-500 flex flex-col space-y-2 rounded-md"
-            style={{ height: "500px" }}
+        {/* Right Side - Chat Messages and Input */}
+        <div className="d-flex flex-column flex-grow-1 bg-white" style={{ minHeight: 0 }}>
+          {/* Chat Header */}
+          {tab === "CHATROOM" ? (
+            // Public Chat Header
+            <div className="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+              <div className="d-flex align-items-center gap-2">
+                <span className="fw-semibold text-primary">Public Chat Room</span>
+                <span className="badge bg-success">Online</span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to clear all public chat messages? This action cannot be undone.")) {
+                    deletePublicChat();
+                  }
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Clearing..." : "Clear Chat"}
+              </button>
+            </div>
+          ) : (
+            // Private Chat Header
+            <div className="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+              <div className="d-flex align-items-center gap-2">
+                <span className="fw-semibold text-primary">Chat with {tab}</span>
+                <span className={`badge ${onlineUsers.has(tab) ? 'bg-success' : 'bg-secondary'}`}>
+                  {onlineUsers.has(tab) ? 'Online' : 'Offline'}
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to delete your messages in the conversation with ${tab}? This will only delete messages you sent, not messages from ${tab}. This action cannot be undone.`)) {
+                    deleteConversation(tab);
+                  }
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Chat"}
+              </button>
+            </div>
+          )}
+
+          {/* Chat Messages Area - Scrollable */}
+          <div 
+            ref={chatContainerRef}
+            className="flex-grow-1 overflow-auto p-4 d-flex flex-column gap-3"
+            style={{ minHeight: 0 }}
           >
-            {/* Conditional Rendering: Public Chat vs Private Chat */}
             {tab === "CHATROOM"
               ? // Render Public Chat Messages
                 publicChats.map((message, index) => (
                   <div
-                    className={`flex ${
+                    className={`d-flex ${
                       message.senderName !== username
-                        ? "justify-start" // Other user's message (left side)
-                        : "justify-end" // Current user's message (right side)
+                        ? "justify-content-start" // Other user's message (left side)
+                        : "justify-content-end" // Current user's message (right side)
                     }`}
                     key={index}
                   >
                     <div
-                      className={`p-2 flex flex-col max-w-lg ${
+                      className={`p-2 d-flex flex-column ${
                         message.senderName !== username
-                          ? "bg-white rounded-t-lg rounded-r-lg" // Other user's message style
-                          : "bg-blue-500 rounded-t-lg rounded-l-lg" // Current user's message style
+                          ? "bg-white rounded-top rounded-end border border-secondary" // Other user's message style
+                          : "bg-primary rounded-top rounded-start text-white" // Current user's message style
                       }`}
+                      style={{ maxWidth: "400px" }}
                     >
-                      {/* Show sender name for other users' messages */}
+                      {/* Sender name for public chat */}
                       {message.senderName !== username && (
-                        <div className="rounded bg-blue-400 mb-2 p-1 text-white">
+                        <div className="rounded bg-info mb-2 p-1 text-white">
                           {message.senderName}
                         </div>
                       )}
                       {/* Message text */}
                       <div
                         className={
-                          message.senderName === username ? "text-white" : ""
+                          message.senderName === username ? "text-white" : "text-dark"
                         }
                       >
                         {message.message}
                       </div>
-                      {/* Display image attachments */}
-                      {message.media &&
-                        message.media
-                          .split(";")[0]
-                          .split("/")[0]
-                          .split(":")[1] === "image" && (
-                          <img src={message.media} alt="" width={"250px"} />
-                        )}
-                      {/* Display video attachments */}
-                      {message.media &&
-                        message.media
-                          .split(";")[0]
-                          .split("/")[0]
-                          .split(":")[1] === "video" && (
-                          <video width="320" height="240" controls>
-                            <source src={message.media} type="video/mp4" />
-                          </video>
-                        )}
                     </div>
                   </div>
                 ))
               : // Render Private Chat Messages
-                privateChats.get(tab).map((message, index) => (
+                (privateChats.get(tab) || []).map((message, index) => (
                   <div
-                    className={`flex ${
+                    className={`d-flex ${
                       message.senderName !== username
-                        ? "justify-start" // Other user's message (left side)
-                        : "justify-end" // Current user's message (right side)
+                        ? "justify-content-start" // Other user's message (left side)
+                        : "justify-content-end" // Current user's message (right side)
                     }`}
                     key={index}
                   >
                     <div
-                      className={`p-2 flex flex-col max-w-lg ${
+                      className={`p-2 d-flex flex-column ${
                         message.senderName !== username
-                          ? "bg-white rounded-t-lg rounded-r-lg" // Other user's message style
-                          : "bg-blue-500 rounded-t-lg rounded-l-lg" // Current user's message style
+                          ? "bg-white rounded-top rounded-end border border-secondary" // Other user's message style
+                          : "bg-primary rounded-top rounded-start text-white" // Current user's message style
                       }`}
+                      style={{ maxWidth: "400px" }}
                     >
                       {/* Message text */}
                       <div
                         className={
-                          message.senderName === username ? "text-white" : ""
+                          message.senderName === username ? "text-white" : "text-dark"
                         }
                       >
                         {message.message}
                       </div>
-                      {/* Display image attachments */}
-                      {message.media &&
-                        message.media
-                          .split(";")[0]
-                          .split("/")[0]
-                          .split(":")[1] === "image" && (
-                          <img src={message.media} alt="" width={"250px"} />
-                        )}
-                      {/* Display video attachments */}
-                      {message.media &&
-                        message.media
-                          .split(";")[0]
-                          .split("/")[0]
-                          .split(":")[1] === "video" && (
-                          <video width="320" height="240" controls>
-                            <source src={message.media} type="video/mp4" />
-                          </video>
-                        )}
                     </div>
                   </div>
                 ))}
           </div>
 
           {/* Message Input Area - Bottom of chat */}
-          <div className="flex items-center p-2">
-            {/* Text input for typing messages */}
-            <input
-              className="flex-grow p-2 border outline-blue-600 rounded-l-lg"
-              type="text"
-              placeholder="Message"
-              value={message}
-              onKeyUp={(e) => {
-                if (e.key === "Enter" || e.key === 13) {
-                  tab === "CHATROOM" ? sendMessage() : sendPrivate(); // Send on Enter key
-                }
-              }}
-              onChange={(e) => setMessage(e.target.value)} // Update message state
-            />
-            {/* File attachment button (paperclip icon) */}
-            <label
-              htmlFor="file"
-              className="p-2 bg-blue-700 text-white rounded-r-none cursor-pointer"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="24"
-                fill="currentColor"
-                className="bi bi-paperclip"
-                viewBox="0 0 16 16"
-              >
-                <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0V3z" />
-              </svg>
-            </label>
-            {/* Hidden file input for selecting files */}
-            <input
-              id="file"
-              type="file"
-              onChange={(e) => base64ConversionForImages(e)} // Handle file selection
-              className="hidden"
-            />
-            {/* Send button - sends to public or private chat based on current tab */}
-            <input
-              type="button"
-              className="ml-2 p-2 bg-blue-700 text-white rounded cursor-pointer"
-              value="Send"
-              onClick={tab === "CHATROOM" ? sendMessage : sendPrivate}
-            />
-            {/* Logout button */}
-            <input
-              type="button"
-              className="ml-2 p-2 bg-blue-700 text-white rounded cursor-pointer"
-              value="Logout"
-              onClick={handleLogout}
-            />
-          </div>
+          <MessageInput
+            message={message}
+            setMessage={setMessage}
+            onSendMessage={tab === "CHATROOM" ? sendMessage : sendPrivate}
+            disabled={isSending}
+          />
         </div>
       </div>
     </div>
