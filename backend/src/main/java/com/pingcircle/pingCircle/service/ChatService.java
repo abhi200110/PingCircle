@@ -22,13 +22,7 @@ public class ChatService {
     // Repository for chat message data access operations
     private final ChatMessageRepository chatMessageRepository;
 
-
-    
-
-   
-
-   
-
+    // Method to save a chat message
     public ChatMessage saveMessage(Message message) {
         ChatMessage chatMessage = new ChatMessage(
                 message.getSenderName(),      // Message sender

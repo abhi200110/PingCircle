@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../../config/axios";
+import api from "../config/axios";
 import PropTypes from "prop-types";
 
 const SearchBar = ({ onUserSelect }) => {
