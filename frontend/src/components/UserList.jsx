@@ -6,45 +6,45 @@ const UserList = ({ users, selectedUser, onUserSelect, onlineUsers = [] }) => {
   };
 
   return (
-    <div className="w-64 bg-gray-50 border-r border-gray-200">
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-800">Users</h2>
-        <p className="text-sm text-gray-600">
+    <div className="bg-light border-end border-secondary" style={{ width: "256px" }}>
+      <div className="p-4 border-bottom border-secondary">
+        <h2 className="h5 fw-semibold text-dark">Users</h2>
+        <p className="small text-muted">
           {onlineUsers.length} online
         </p>
       </div>
       
-      <div className="overflow-y-auto h-full">
+      <div className="overflow-auto h-100">
         {users.map((user) => (
           <div
             key={user.username}
             onClick={() => onUserSelect(user)}
-            className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-100 transition-colors ${
-              selectedUser?.username === user.username ? 'bg-blue-50 border-blue-200' : ''
+            className={`p-4 border-bottom border-light cursor-pointer hover-bg-light transition-colors ${
+              selectedUser?.username === user.username ? 'bg-primary bg-opacity-10 border-primary' : ''
             }`}
           >
-            <div className="flex items-center space-x-3">
-              <div className="relative">
-                <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 font-medium">
+            <div className="d-flex align-items-center gap-3">
+              <div className="position-relative">
+                <div className="bg-secondary rounded-circle d-flex align-items-center justify-content-center" style={{ width: "40px", height: "40px" }}>
+                  <span className="text-muted fw-medium">
                     {user.name.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 {isOnline(user.username) && (
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                  <div className="position-absolute bottom-0 end-0 bg-success rounded-circle border border-white" style={{ width: "16px", height: "16px", transform: "translate(25%, 25%)" }}></div>
                 )}
               </div>
               
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+              <div className="flex-grow-1 min-w-0">
+                <div className="d-flex align-items-center justify-content-between">
+                  <p className="small fw-medium text-dark text-truncate">
                     {user.name}
                   </p>
                   {isOnline(user.username) && (
-                    <span className="text-xs text-green-600">Online</span>
+                    <span className="small text-success">Online</span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="small text-muted text-truncate">
                   @{user.username}
                 </p>
               </div>

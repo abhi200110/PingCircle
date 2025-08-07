@@ -1,21 +1,23 @@
 import React from 'react';
 
-const LoadingSpinner = ({ size = 'md', color = 'blue' }) => {
+const LoadingSpinner = ({ size = 'md', color = 'primary' }) => {
   const sizeClasses = {
-    sm: 'w-4 h-4',
-    md: 'w-8 h-8',
-    lg: 'w-12 h-12'
+    sm: 'spinner-border-sm',
+    md: '',
+    lg: 'spinner-border-lg'
   };
 
   const colorClasses = {
-    blue: 'text-blue-500',
-    gray: 'text-gray-500',
+    primary: 'text-primary',
+    secondary: 'text-secondary',
     white: 'text-white'
   };
 
   return (
-    <div className="flex justify-center items-center">
-      <div className={`animate-spin rounded-full border-2 border-gray-300 border-t-current ${sizeClasses[size]} ${colorClasses[color]}`}></div>
+    <div className="d-flex justify-content-center align-items-center">
+      <div className={`spinner-border ${sizeClasses[size]} ${colorClasses[color]}`} role="status">
+        <span className="visually-hidden">Loading...</span>
+      </div>
     </div>
   );
 };

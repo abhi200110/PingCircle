@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
+import EmojiPicker from 'emoji-picker-react';
 
-const MessageInput = ({ onSendMessage, onSendMedia, disabled = false }) => {
-  const [message, setMessage] = useState('');
+const MessageInput = ({ message, setMessage, onSendMessage, disabled = false }) => {
   const [isTyping, setIsTyping] = useState(false);
-  const fileInputRef = useRef(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -20,80 +21,93 @@ const MessageInput = ({ onSendMessage, onSendMedia, disabled = false }) => {
     }
   };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        onSendMedia(event.target.result, file.type);
-      };
-      reader.readAsDataURL(file);
+  const handleTextareaChange = (e) => {
+    setMessage(e.target.value);
+    // Close emoji picker when user starts typing
+    if (showEmojiPicker) {
+      setShowEmojiPicker(false);
     }
   };
 
-  const handleFileUpload = () => {
-    fileInputRef.current?.click();
+  const onEmojiClick = (emojiObject) => {
+    setMessage(prev => prev + emojiObject.emoji);
   };
 
-  const addEmoji = (emoji) => {
-    setMessage(prev => prev + emoji);
+  const toggleEmojiPicker = () => {
+    setShowEmojiPicker(!showEmojiPicker);
   };
+
+  // Close emoji picker when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
-    <div className="border-t border-gray-200 p-4">
-      <form onSubmit={handleSubmit} className="flex items-end space-x-2">
-        <div className="flex-1">
-          <div className="flex items-center space-x-2 mb-2">
-            <button
-              type="button"
-              onClick={handleFileUpload}
-              className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
-              disabled={disabled}
-            >
-              📎
-            </button>
-            <div className="flex space-x-1">
-              {['😊', '👍', '❤️', '😂', '🎉'].map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => addEmoji(emoji)}
-                  className="text-lg hover:scale-110 transition-transform"
-                  disabled={disabled}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-          
+    <div className="border-top border-secondary p-4 message-input-container">
+      <form onSubmit={handleSubmit} className="d-flex align-items-end gap-2">
+        <div className="flex-grow-1">
           <textarea
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleTextareaChange}
             onKeyPress={handleKeyPress}
             placeholder="Type a message..."
-            className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="form-control"
             rows="2"
             disabled={disabled}
+            style={{ resize: 'none', minHeight: '60px', maxHeight: '120px' }}
           />
+        </div>
+        
+        <div className="position-relative" ref={emojiPickerRef}>
+          <button
+            type="button"
+            onClick={toggleEmojiPicker}
+            className="btn btn-link text-muted p-2"
+            disabled={disabled}
+            title="Add emoji"
+          >
+            😊
+          </button>
+          {showEmojiPicker && (
+            <div 
+              className="position-absolute"
+              style={{
+                bottom: '100%',
+                right: '0',
+                zIndex: 1000,
+                marginBottom: '10px'
+              }}
+            >
+              <EmojiPicker
+                onEmojiClick={onEmojiClick}
+                width={350}
+                height={400}
+                searchPlaceholder="Search emoji..."
+                previewConfig={{
+                  showPreview: false
+                }}
+              />
+            </div>
+          )}
         </div>
         
         <button
           type="submit"
           disabled={!message.trim() || disabled}
-          className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="btn btn-primary px-4 py-2"
         >
           Send
         </button>
       </form>
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-      />
     </div>
   );
 };
