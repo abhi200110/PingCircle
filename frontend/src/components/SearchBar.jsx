@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../../config/axios";
+import api from "../config/axios";
 import PropTypes from "prop-types";
 
 const SearchBar = ({ onUserSelect }) => {
@@ -36,24 +36,25 @@ const SearchBar = ({ onUserSelect }) => {
   };
 
   return (
-    <div className="relative w-64">
+    <div className="position-relative w-100">
       <input
         type="text"
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+        className="form-control border-primary"
         placeholder="Search username..."
         value={username}
         onChange={handleInputChange}
       />
       <button
-        className="absolute right-0 top-0 mt-2 mr-2"
+        className="position-absolute top-0 end-0 mt-2 me-2 btn btn-link p-0"
         onClick={handleSearch}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-blue-700"
+          className="text-primary"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          style={{ width: "24px", height: "24px" }}
         >
           <path
             strokeLinecap="round"
@@ -69,13 +70,13 @@ const SearchBar = ({ onUserSelect }) => {
           />
         </svg>
       </button>
-      {error && <p className="text-red-500 mt-2">{error}</p>}
+      {error && <p className="text-danger mt-2">{error}</p>}
       {searchResults.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg">
+        <div className="position-absolute top-100 start-0 mt-1 w-100 bg-white border border-primary rounded shadow-lg" style={{ zIndex: 10 }}>
           {searchResults.map((user) => (
             <div
               key={user.id}
-              className="cursor-pointer p-2 hover:bg-gray-100"
+              className="cursor-pointer p-2 hover-bg-light border-bottom border-light"
               onClick={() => handleUserSelect(user)}
             >
               {user.username}

@@ -1,9 +1,9 @@
-// src/pages/Login.js
+// src/pages/Login.jsx
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./button.css";
-import SignupForm from "./SignupForm"; // Import SignupForm
+import SignupForm from "./SignupForm";
 import axios from "axios";
 
 export const Login = () => {
@@ -25,13 +25,10 @@ export const Login = () => {
       setError("");
 
       if (username && password) {
-        const response = await axios.post(
-          "http://localhost:8080/api/users/login",
-          {
-            username,
-            password,
-          }
-        );
+        const response = await axios.post("http://localhost:8080/api/users/login", {
+          username,
+          password,
+        });
 
         if (response.status === 200) {
           localStorage.setItem("chat-username", username);
@@ -43,9 +40,9 @@ export const Login = () => {
       }
     } catch (error) {
       console.error("Error logging in:", error);
-      if (error.response && error.response.status === 401) {
+      if (error.response?.status === 401) {
         setError("Invalid username or password.");
-      } else if (error.response && error.response.status === 404) {
+      } else if (error.response?.status === 404) {
         setError("User not found.");
       } else {
         setError("An error occurred. Please try again.");
@@ -59,56 +56,114 @@ export const Login = () => {
   };
 
   return (
-    <div className="flex items-center flex-col justify-center h-screen bg-blue-300">
-      {error && <div className="text-red-500 mb-2 font-semibold">{error}</div>}
-      {isSignup ? (
-        <SignupForm onSignupSuccess={handleSignupSuccess} />
-      ) : (
-        <div
-          className={`flex border-2 flex-col items-center justify-center w-1/4 p-4 bg-white bg-opacity-50 rounded-lg gap-2 ${
-            error ? "border-red-500" : "border-gray-300"
-          }`}
-        >
-          <form>
+    <>
+      <style>
+        {`
+          .login-bg {
+            background: linear-gradient(to right, #eef2f3, #8ec5fc, #c3eafcff);
+          }
+
+          .login-card {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            max-width: 400px;
+            width: 90%;
+            color: #003366;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+          }
+
+          .glass-input {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #cfe2ff;
+            border-radius: 12px;
+            color: #003366;
+            text-align: center;
+          }
+
+          .glass-input::placeholder {
+            color: #6c757d;
+          }
+
+          .glass-input:focus {
+            background: rgba(255, 255, 255, 0.95);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.4);
+            color: #003366;
+          }
+
+          .login-btn {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px;
+            transition: 0.3s ease;
+          }
+
+          .login-btn:hover {
+            background-color: #0b5ed7;
+          }
+
+          .link-button {
+            color: #0d6efd;
+          }
+
+          .pingcircle-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #0d6efd;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+          }
+        `}
+      </style>
+
+      <div className="login-bg d-flex align-items-center justify-content-center vh-100">
+        {isSignup ? (
+          <SignupForm onSignupSuccess={handleSignupSuccess} onBackToLogin={() => setIsSignup(false)} />
+        ) : (
+          <div className="login-card shadow">
+            <div className="pingcircle-title">PingCircle</div>
+
+            {error && <div className="alert alert-danger py-1 px-2">{error}</div>}
+
             <input
               type="text"
-              className="rounded-lg border border-gray-300 p-2 w-full text-center outline-blue-600"
+              className="form-control glass-input mb-3"
               placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              onKeyUp={(e) => {
-                if (e.key === "Enter" || e.key === 13) handleLogin();
-              }}
+              onKeyUp={(e) => e.key === "Enter" && handleLogin()}
             />
+
             <input
               type="password"
-              className="rounded-lg border border-gray-300 p-2 w-full text-center outline-blue-600"
+              className="form-control glass-input mb-3"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyUp={(e) => {
-                if (e.key === "Enter" || e.key === 13) handleLogin();
-              }}
+              onKeyUp={(e) => e.key === "Enter" && handleLogin()}
             />
-            <button
-              type="button"
-              className="text-white batman rounded-lg px-4 py-2 mt-2"
-              onClick={handleLogin}
-            >
-              <span>Connect</span>
+
+            <button className="btn login-btn w-100 mb-3" onClick={handleLogin}>
+              Connect
             </button>
 
-            <button
-              type="button"
-              className="text-blue-500 underline mt-4"
-              onClick={() => setIsSignup(true)}
-            >
-              Don&apos;t have an account? Sign up
-            </button>
-          </form>
-        </div>
-      )}
-    </div>
+            <div className="text-center">
+              <button
+                className="btn btn-link link-button"
+                onClick={() => setIsSignup(true)}
+              >
+                Don't have an account? <strong>Sign up</strong>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

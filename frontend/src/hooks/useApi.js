@@ -8,7 +8,7 @@ import api from '../config/axios';
  * 
  * @returns {Object} Object containing loading state, error state, and API functions
  */
-const useApi = () => {  //Declares your custom hook useApi, which returns API-related logic/functions.
+const useApi = () => {
   // State for tracking API request loading status
   const [loading, setLoading] = useState(false);
   // State for storing any API request errors
@@ -43,7 +43,7 @@ const useApi = () => {  //Declares your custom hook useApi, which returns API-re
    * @returns {Promise} Promise that resolves with login response
    */
   const login = useCallback(async (username, password) => {
-    return makeRequest(() => // call is wrapped inside makeRequest() to handle loading and error automatically.
+    return makeRequest(() => 
       api.post('/users/login', { username, password })
     );
   }, [makeRequest]);
