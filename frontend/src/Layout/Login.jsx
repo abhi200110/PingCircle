@@ -12,6 +12,7 @@ export const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSignup, setIsSignup] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("chat-username");
@@ -80,7 +81,8 @@ export const Login = () => {
             border: 1px solid #cfe2ff;
             border-radius: 12px;
             color: #003366;
-            text-align: center;
+            padding-left: 1rem;
+            padding-right: 1rem;
           }
 
           .glass-input::placeholder {
@@ -123,7 +125,10 @@ export const Login = () => {
 
       <div className="login-bg d-flex align-items-center justify-content-center vh-100">
         {isSignup ? (
-          <SignupForm onSignupSuccess={handleSignupSuccess} onBackToLogin={() => setIsSignup(false)} />
+          <SignupForm
+            onSignupSuccess={handleSignupSuccess}
+            onBackToLogin={() => setIsSignup(false)}
+          />
         ) : (
           <div className="login-card shadow">
             <div className="pingcircle-title">PingCircle</div>
@@ -139,14 +144,24 @@ export const Login = () => {
               onKeyUp={(e) => e.key === "Enter" && handleLogin()}
             />
 
-            <input
-              type="password"
-              className="form-control glass-input mb-3"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyUp={(e) => e.key === "Enter" && handleLogin()}
-            />
+            <div className="input-group mb-3">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="form-control glass-input"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyUp={(e) => e.key === "Enter" && handleLogin()}
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
 
             <button className="btn login-btn w-100 mb-3" onClick={handleLogin}>
               Connect
