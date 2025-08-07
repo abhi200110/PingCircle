@@ -1,4 +1,4 @@
-package com.pingcircle.pingCircle.Controller;
+package com.pingcircle.pingCircle.controller;
 
 import com.pingcircle.pingCircle.entity.ChatMessage;
 import com.pingcircle.pingCircle.entity.Users;
@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Set;
+import com.chat_app.chat.model.Status;
+import java.util.HashSet;
 
 /**
  * Chat Controller for handling HTTP and WebSocket requests
@@ -52,6 +54,9 @@ public class ChatController {
     
     // Service layer for user-related operations
     private final UserService userService;
+    
+    // Track online users
+    private static final Set<String> onlineUsers = new HashSet<>();
 
     /**
      * User login endpoint
@@ -173,31 +178,73 @@ public class ChatController {
     }
 
     /**
-     * WebSocket endpoint for public chat messages
+     * WebSocket endpoint for public messages
      * 
-     * Handles real-time public chat messages sent via WebSocket.
-     * Messages are saved to database and broadcast to all connected users.
+     * Handles real-time public messages sent to the chat room.
+     * Messages are saved to database and broadcasted to all subscribers.
      * 
      * Message Flow:
      * 1. Client sends message to "/app/message"
      * 2. This method receives and processes the message
-     * 3. Message is saved to database
-     * 4. Message is broadcast to "/chatroom/public" for all subscribers
+     * 3. Message is saved to database with "PUBLIC" as receiver (only for actual messages)
+     * 4. Message is broadcasted to all subscribers via "/chatroom/public"
      * 
-     * @param message The chat message object
-     * @return The same message (broadcasted to all subscribers)
-     * @throws InterruptedException if sleep is interrupted
+     * @param message The public message object
+     * @return The message to be broadcasted
      */
     @MessageMapping("/message")
     @SendTo("/chatroom/public")
-    public Message receiveMessage(Message message) throws InterruptedException {
-        // Save message to the database for persistence
-        chatService.saveMessage(message);
-
-        // Simulate processing delay (can be removed in production)
-        Thread.sleep(1000);
+    public Message receiveMessage(Message message) {
+        System.out.println("=== GROUP MESSAGE RECEIVED ===");
+        System.out.println("Original message: " + message);
+        System.out.println("Message status: " + message.getStatus());
+        System.out.println("Message content: " + message.getMessage());
+        System.out.println("Sender: " + message.getSenderName());
+        
+        // Set receiver name to "PUBLIC" to distinguish from private messages
+        message.setReceiverName("PUBLIC");
+        System.out.println("Set receiver to PUBLIC");
+        
+        // Handle status conversion - frontend sends string status, backend expects Status enum
+        Status currentStatus = message.getStatus();
+        if (currentStatus == null) {
+            // If status is null, default to MESSAGE for actual chat messages
+            message.setStatus(Status.MESSAGE);
+            System.out.println("Status was null, set to MESSAGE");
+        }
+        
+        // Handle JOIN and LEAVE messages for online user tracking
+        if (Status.JOIN.equals(message.getStatus())) {
+            String username = message.getSenderName();
+            onlineUsers.add(username);
+            System.out.println("User joined: " + username + ". Online users: " + onlineUsers);
+        } else if (Status.LEAVE.equals(message.getStatus())) {
+            String username = message.getSenderName();
+            onlineUsers.remove(username);
+            System.out.println("User left: " + username + ". Online users: " + onlineUsers);
+        }
+        
+        // Only save actual chat messages to database, not JOIN/LEAVE system messages
+        boolean isMessageStatus = Status.MESSAGE.equals(message.getStatus());
+        boolean hasValidContent = message.getMessage() != null && !message.getMessage().trim().isEmpty();
+        
+        System.out.println("Is message status: " + isMessageStatus);
+        System.out.println("Has valid content: " + hasValidContent);
+        System.out.println("Message content: '" + message.getMessage() + "'");
+        
+        if (isMessageStatus && hasValidContent) {
+            System.out.println("Saving group message to database: " + message);
+            
+            // Save message to the database for persistence
+            ChatMessage savedMessage = chatService.saveMessage(message);
+            System.out.println("Group message saved to database with ID: " + savedMessage.getId());
+        } else {
+            System.out.println("Skipping database save for system message (JOIN/LEAVE) or empty message");
+            System.out.println("Status: " + message.getStatus() + ", Content: " + message.getMessage());
+        }
 
         // Return message to be broadcasted to all subscribers
+        System.out.println("Broadcasting group message: " + message);
         return message;
     }
 
@@ -217,13 +264,72 @@ public class ChatController {
      */
     @MessageMapping("/private-message")
     public void privateMessage(Message message) {
-        String receiver = message.getReceiverName();
-        
-        // Send message only to the specific receiver
-        simpMessagingTemplate.convertAndSendToUser(receiver, "/private", message);
+        try {
+            String receiver = message.getReceiverName();
+            String sender = message.getSenderName();
+            System.out.println("Received private message from " + sender + " to " + receiver);
+            
+            // Ensure message has proper status
+            if (message.getStatus() == null) {
+                message.setStatus(Status.MESSAGE);
+            }
+            
+            // Always save private message to the database for persistence
+            // This ensures messages are stored even if the receiver is offline
+            ChatMessage savedMessage = chatService.saveMessage(message);
+            System.out.println("Private message saved to database with ID: " + savedMessage.getId());
+            
+            // Send message to both sender and receiver
+            try {
+                // Send message to the receiver
+                simpMessagingTemplate.convertAndSendToUser(receiver, "/private", message);
+                System.out.println("Private message sent to receiver: " + receiver);
+                
+                // Also send message back to the sender so they can see their own message
+                simpMessagingTemplate.convertAndSendToUser(sender, "/private", message);
+                System.out.println("Private message sent back to sender: " + sender);
+            } catch (Exception e) {
+                System.out.println("User " + receiver + " is offline, message stored for later delivery");
+                // Message is already saved to database, so it will be available when user comes back online
+            }
+        } catch (Exception e) {
+            System.err.println("Error processing private message: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
-        // Save private message to the database for persistence
-        chatService.saveMessage(message);
+    /**
+     * Handle user disconnection
+     * This method is called when a user's WebSocket connection is lost
+     * 
+     * @param username The username of the disconnected user
+     */
+    public void handleUserDisconnection(String username) {
+        if (username != null && onlineUsers.remove(username)) {
+            System.out.println("User disconnected: " + username + ". Online users: " + onlineUsers);
+            
+            // Send LEAVE message to all users
+            Message leaveMessage = new Message();
+            leaveMessage.setSenderName(username);
+            leaveMessage.setStatus(Status.LEAVE);
+            leaveMessage.setReceiverName("PUBLIC");
+            
+            simpMessagingTemplate.convertAndSend("/chatroom/public", leaveMessage);
+        }
+    }
+
+    /**
+     * Get online users endpoint
+     * 
+     * Returns a list of currently online users.
+     * This helps frontend display accurate online/offline status.
+     * 
+     * @return List of online usernames
+     */
+    @GetMapping("/online-users")
+    public ResponseEntity<Set<String>> getOnlineUsers() {
+        System.out.println("Current online users: " + onlineUsers);
+        return ResponseEntity.ok(new HashSet<>(onlineUsers));
     }
 
     /**
@@ -266,6 +372,36 @@ public class ChatController {
     ) {
         Page<ChatMessage> messages = chatService.getChatHistoryPaginated(user1, user2, page, size);
         return ResponseEntity.ok(messages);
+    }
+
+    /**
+     * Get public chat history endpoint
+     * 
+     * Retrieves all public chat messages in chronological order.
+     * Used to load public chat history when opening the chat room.
+     * 
+     * @return List of public chat messages
+     */
+    @GetMapping("/api/messages/public/history")
+    public ResponseEntity<List<ChatMessage>> getPublicChatHistory() {
+        System.out.println("=== PUBLIC CHAT HISTORY ENDPOINT CALLED ===");
+        try {
+            List<ChatMessage> messages = chatService.getPublicChatHistory();
+            System.out.println("Retrieved " + messages.size() + " public messages from database");
+            
+            // Log each message for debugging
+            for (int i = 0; i < messages.size(); i++) {
+                ChatMessage msg = messages.get(i);
+                System.out.println("Message " + (i + 1) + ": " + msg.getSenderName() + " -> " + 
+                                 msg.getMessage() + " (status: " + msg.getStatus() + ", timestamp: " + msg.getTimestamp() + ")");
+            }
+            
+            return ResponseEntity.ok(messages);
+        } catch (Exception e) {
+            System.err.println("Error getting public chat history: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 
     /**
@@ -319,22 +455,79 @@ public class ChatController {
     /**
      * Check if user is pinned endpoint
      * 
-     * Checks whether a specific user is pinned by another user.
-     * Used by frontend to show/hide pin icons and manage pin state.
+     * Returns whether a specific user is pinned by the specified user.
+     * Used to show correct pin/unpin button state in the UI.
      * 
-     * @param username The username checking the pin status
-     * @param pinnedUsername The username being checked
-     * @return true if user is pinned, false otherwise
+     * @param username The username to check pinned status for
+     * @param pinnedUsername The username to check if it's pinned
+     * @return Boolean indicating if the user is pinned
      */
     @GetMapping("/is-pinned")
     public ResponseEntity<Boolean> isUserPinned(
             @RequestParam String username,
             @RequestParam String pinnedUsername
     ) {
-        System.out.println("Checking if user is pinned: " + username + " -> " + pinnedUsername);
-        boolean isPinned = userService.isUserPinned(username, pinnedUsername);
-        System.out.println("Is pinned result: " + isPinned);
+        Boolean isPinned = userService.isUserPinned(username, pinnedUsername);
         return ResponseEntity.ok(isPinned);
+    }
+
+    /**
+     * Delete conversation between two users
+     * 
+     * Removes all messages between the specified users from the database.
+     * This is a permanent deletion and cannot be undone.
+     * 
+     * @param user1 First username
+     * @param user2 Second username
+     * @return Success message if deletion was successful
+     */
+    @DeleteMapping("/api/messages/delete/{user1}/{user2}")
+    public ResponseEntity<?> deleteConversation(
+            @PathVariable String user1,
+            @PathVariable String user2
+    ) {
+        try {
+            System.out.println("Deleting conversation between " + user1 + " and " + user2);
+            
+            // Delete messages from database
+            int deletedCount = chatService.deleteConversation(user1, user2);
+            
+            System.out.println("Deleted " + deletedCount + " messages");
+            
+            return ResponseEntity.ok("Your messages in the conversation have been deleted successfully. " + deletedCount + " messages removed.");
+        } catch (Exception e) {
+            System.err.println("Error deleting conversation: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting conversation: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Delete all public chat messages
+     * 
+     * Removes all public chat messages from the database.
+     * This is a permanent deletion and cannot be undone.
+     * 
+     * @return Success message if deletion was successful
+     */
+    @DeleteMapping("/api/messages/delete/public")
+    public ResponseEntity<?> deletePublicChat() {
+        try {
+            System.out.println("Deleting all public chat messages");
+            
+            // Delete public messages from database
+            int deletedCount = chatService.deletePublicChat();
+            
+            System.out.println("Deleted " + deletedCount + " public messages");
+            
+            return ResponseEntity.ok("Public chat cleared successfully. " + deletedCount + " messages removed.");
+        } catch (Exception e) {
+            System.err.println("Error deleting public chat: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting public chat: " + e.getMessage());
+        }
     }
 }
 
