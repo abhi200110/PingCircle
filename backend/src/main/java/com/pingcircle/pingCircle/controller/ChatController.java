@@ -1,5 +1,22 @@
 package com.pingcircle.pingCircle.controller;
 
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.pingcircle.pingCircle.entity.ChatMessage;
 import com.pingcircle.pingCircle.entity.Users;
 import com.pingcircle.pingCircle.model.LoginRequest;
@@ -9,18 +26,11 @@ import com.pingcircle.pingCircle.model.PinUserRequest;
 import com.pingcircle.pingCircle.model.UserDto;
 import com.pingcircle.pingCircle.service.ChatService;
 import com.pingcircle.pingCircle.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.web.bind.annotation.*;
+import com.pingcircle.pingCircle.model.Status;
+
 
 import java.util.List;
 import java.util.Set;
-import com.chat_app.chat.model.Status;
 import java.util.HashSet;
 
 /**
@@ -407,8 +417,8 @@ public class ChatController {
     /**
      * Get pinned users endpoint
      * 
-     * Returns list of usernames that the specified user has pinned.
-     * Pinned users appear at the top of the user list for quick access.
+     * Returns the list of users pinned by the specified user.
+     * Pinned users are stored in the user's profile for quick access.
      * 
      * @param username The username to get pinned users for
      * @return Set of pinned usernames
