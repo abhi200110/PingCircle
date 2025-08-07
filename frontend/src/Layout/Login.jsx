@@ -60,7 +60,7 @@ export const Login = () => {
       <style>
         {`
           .login-bg {
-            background: linear-gradient(to right, #eef2f3, #8ec5fc, #e0c3fc);
+            background: linear-gradient(to right, #eef2f3, #8ec5fc, #c3eafcff);
           }
 
           .login-card {
