@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import SockJS from "sockjs-client"; // WebSocket client library
@@ -8,10 +7,7 @@ import PinnedUsers from "../components/PinnedUsers"; // Component to display pin
 import UserChatItem from "../components/UserChatItem"; // Component for individual user chat items
 import UserDashboard from "../components/UserDashboard"; // Component for user dashboard
 import MessageInput from "../components/MessageInput"; // Component for message input with emoji picker
-import ScheduledMessageModal from "../components/ScheduledMessageModal"; // Component for scheduling messages
-import ScheduledMessagesList from "../components/ScheduledMessagesList"; // Component for viewing scheduled messages
 import api from "../config/axios"; // Configured axios instance with JWT authentication
-import logger from "../utils/logger"; // Proper logging utility
 
 // Global WebSocket client variable
 var stompClient = null;
@@ -36,14 +32,6 @@ export const ChatPage = () => {
   const [isDeleting, setIsDeleting] = useState(false); // Loading state for deleting conversations
   const [onlineUsers, setOnlineUsers] = useState(new Set()); // Set of online users
   
-  // Notification system state
-  const [unreadMessages, setUnreadMessages] = useState(new Set()); // Set of usernames with unread messages
-  const [recentChats, setRecentChats] = useState(new Set()); // Set of usernames in recent chats
-  
-  // Scheduled message state
-  const [showScheduleModal, setShowScheduleModal] = useState(false); // Show/hide schedule modal
-  const [showScheduledList, setShowScheduledList] = useState(false); // Show/hide scheduled messages list
-  
   // Navigation and refs
   const navigate = useNavigate(); // React Router navigation hook
   const connected = useRef(false); // Ref to track WebSocket connection status
@@ -59,19 +47,10 @@ export const ChatPage = () => {
   // Load initial data when component mounts
   useEffect(() => {
     if (username) {
-      logger.info("Loading initial data for user", { username });
+      console.log("Loading initial data for user:", username);
       fetchPinnedUsers(); // Load pinned users
       fetchOnlineUsers(); // Load online users
       connect(); // Establish WebSocket connection
-      
-      // Set up periodic refresh of online users
-      const onlineUsersInterval = setInterval(() => {
-        fetchOnlineUsers();
-      }, 30000); // Refresh every 30 seconds
-      
-      return () => {
-        clearInterval(onlineUsersInterval);
-      };
     }
   }, [username]);
 
@@ -94,23 +73,9 @@ export const ChatPage = () => {
       }
     };
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Page is hidden (user switched tabs or minimized)
-        logger.debug("Page hidden, user may be away");
-      } else {
-        // Page is visible again, refresh online users
-        logger.debug("Page visible again, refreshing online users");
-        fetchOnlineUsers();
-      }
-    };
-
     window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [stompClient]);
 
@@ -126,19 +91,6 @@ export const ChatPage = () => {
       privateChats.set(user.username, []);
       setPrivateChats(new Map(privateChats));
     }
-    
-    // Add to recent chats
-    setRecentChats(prev => new Set([...prev, user.username]));
-    
-    // Clear unread messages for this user when selected
-    setUnreadMessages(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(user.username);
-      return newSet;
-    });
-    
-    // Mark all messages as read when opening the chat
-    markAllMessagesAsRead(username, user.username);
     
     // Load chat history for the selected user
     fetchChatHistory(username, user.username);
@@ -198,37 +150,11 @@ export const ChatPage = () => {
   };
 
   // Handle pin/unpin user actions (called from UserChatItem component)
-  const handlePinChange = async (pinnedUsername, isPinned) => {
-    try {
-      logger.debug('Pin change triggered', { pinnedUsername, isPinned });
-      
-      if (isPinned) {
-        // Add to pinned users immediately for better UX
-        setPinnedUsers(prev => {
-          if (!prev.includes(pinnedUsername)) {
-            const newPinnedUsers = [...prev, pinnedUsername];
-            logger.debug('Updated pinned users', { newPinnedUsers });
-            return newPinnedUsers;
-          }
-          return prev;
-        });
-        logger.debug('User pinned', { pinnedUsername });
-      } else {
-        // Remove from pinned users immediately for better UX
-        setPinnedUsers(prev => {
-          const newPinnedUsers = prev.filter(user => user !== pinnedUsername);
-          logger.debug('Updated pinned users', { newPinnedUsers });
-          return newPinnedUsers;
-        });
-        logger.debug('User unpinned', { pinnedUsername });
-      }
-      
-      // Refresh pinned users from server to ensure consistency
-      await fetchPinnedUsers();
-    } catch (error) {
-      console.error('Error handling pin change:', error);
-      // Revert the optimistic update on error
-      await fetchPinnedUsers();
+  const handlePinChange = (pinnedUsername, isPinned) => {
+    if (isPinned) {
+      setPinnedUsers(prev => [...prev, pinnedUsername]); // Add to pinned users
+    } else {
+      setPinnedUsers(prev => prev.filter(user => user !== pinnedUsername)); // Remove from pinned users
     }
   };
 
@@ -238,18 +164,18 @@ export const ChatPage = () => {
   const onMessageReceived = (payload) => {
     try {
       const payloadData = JSON.parse(payload.body);
-      logger.websocket("Group message received", {
-        status: payloadData.status,
-        content: payloadData.message,
-        sender: payloadData.senderName,
-        receiver: payloadData.receiverName,
-        currentChatsCount: publicChats.length,
-        currentTab: tab
-      });
+      console.log("=== GROUP MESSAGE RECEIVED ===");
+      console.log("Payload data:", payloadData);
+      console.log("Message status:", payloadData.status);
+      console.log("Message content:", payloadData.message);
+      console.log("Message sender:", payloadData.senderName);
+      console.log("Message receiver:", payloadData.receiverName);
+      console.log("Current public chats count:", publicChats.length);
+      console.log("Current tab:", tab);
       
       switch (payloadData.status) {
         case "JOIN":
-          logger.websocket("User joined", { username: payloadData.senderName });
+          console.log("User joined:", payloadData.senderName);
           // Add user to online users list
           setOnlineUsers(prev => new Set([...prev, payloadData.senderName]));
           // When a user joins, add them to private chats list if not already there
@@ -264,7 +190,7 @@ export const ChatPage = () => {
           }
           break;
         case "LEAVE":
-          logger.websocket("User left", { username: payloadData.senderName });
+          console.log("User left:", payloadData.senderName);
           // Remove user from online users list
           setOnlineUsers(prev => {
             const newSet = new Set(prev);
@@ -281,28 +207,28 @@ export const ChatPage = () => {
           }
           break;
         case "MESSAGE":
-          logger.websocket("Processing group message", {
-            content: payloadData.message,
-            sender: payloadData.senderName
-          });
+          console.log("Processing GROUP MESSAGE status");
+          console.log("Message content:", payloadData.message);
+          console.log("Message sender:", payloadData.senderName);
           
           // Add public message to public chat
           setPublicChats((prev) => {
-            logger.debug("Updating public chats", {
-              previousCount: prev.length,
-              newCount: prev.length + 1
-            });
-            return [...prev, payloadData];
+            console.log("Previous public chats count:", prev.length);
+            console.log("Previous messages:", prev);
+            const newChats = [...prev, payloadData];
+            console.log("New public chats count:", newChats.length);
+            console.log("Added message:", payloadData);
+            console.log("Updated messages:", newChats);
+            return newChats;
           });
           break;
         default:
-          logger.warn("Unknown status received", { status: payloadData.status });
+          console.warn("Unknown status received:", payloadData.status);
       }
     } catch (error) {
-      logger.error("Error processing group message", {
-        error: error.message,
-        stack: error.stack
-      });
+      console.error("Error processing group message:", error);
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
     }
   };
 
@@ -310,39 +236,36 @@ export const ChatPage = () => {
   const onPrivateMessage = (payload) => {
     try {
       const payloadData = JSON.parse(payload.body);
-      logger.websocket("Private message received", {
-        sender: payloadData.senderName,
-        receiver: payloadData.receiverName,
-        content: payloadData.message,
-        currentUser: username,
-        currentTab: tab
-      });
+      console.log("=== PRIVATE MESSAGE RECEIVED ===");
+      console.log("Payload data:", payloadData);
+      console.log("Current user:", username);
+      console.log("Message sender:", payloadData.senderName);
+      console.log("Message receiver:", payloadData.receiverName);
+      console.log("Message content:", payloadData.message);
+      console.log("Current tab:", tab);
       
       // Determine which user's chat to update
       let targetUser;
       if (payloadData.senderName === username) {
         // This is a message I sent - add to receiver's chat
         targetUser = payloadData.receiverName;
-        logger.debug("I sent this message, adding to receiver's chat", { targetUser });
+        console.log("I sent this message, adding to receiver's chat:", targetUser);
       } else if (payloadData.receiverName === username) {
         // This is a message sent to me - add to sender's chat
         targetUser = payloadData.senderName;
-        logger.debug("I received this message, adding to sender's chat", { targetUser });
+        console.log("I received this message, adding to sender's chat:", targetUser);
       } else {
-        logger.debug("Message not for current user, ignoring");
+        console.log("Message not for current user, ignoring");
         return;
       }
       
-      logger.debug("Target user for chat update", { targetUser });
+      console.log("Target user for chat update:", targetUser);
       
       // Add the received message to the appropriate chat history
       setPrivateChats((prevChats) => {
         const newChats = new Map(prevChats);
         const existingMessages = newChats.get(targetUser) || [];
-        logger.debug("Existing messages count", { 
-          targetUser, 
-          count: existingMessages.length 
-        });
+        console.log("Existing messages count for", targetUser + ":", existingMessages.length);
         
         // Check if message already exists to prevent duplicates
         // Use a more precise duplicate detection based on sender, receiver, message content, and timestamp
@@ -355,47 +278,44 @@ export const ChatPage = () => {
         
         if (!messageExists) {
           const updatedMessages = [...existingMessages, payloadData];
-          logger.debug("Message added to chat", { 
-            targetUser, 
-            updatedCount: updatedMessages.length 
-          });
+          console.log("✅ Message added to chat for", targetUser);
+          console.log("Updated messages count:", updatedMessages.length);
           newChats.set(targetUser, updatedMessages);
-          
-          // Add notification logic for received messages
-          if (payloadData.senderName !== username) {
-            // This is a message received from another user
-            logger.debug("Adding notification for message", { 
-              sender: payloadData.senderName 
-            });
-            
-            // Add to recent chats if not already there
-            setRecentChats(prev => new Set([...prev, payloadData.senderName]));
-            
-            // Add to unread messages if not currently viewing this chat
-            if (tab !== payloadData.senderName) {
-              setUnreadMessages(prev => new Set([...prev, payloadData.senderName]));
-              logger.debug("Blue dot added for unread message", { 
-                sender: payloadData.senderName 
-              });
-            }
-          }
         } else {
-          logger.debug("Message already exists, skipping");
+          console.log("⚠️ Message already exists, skipping");
         }
         return newChats;
       });
     } catch (error) {
-      logger.error("Error processing private message", { error: error.message });
+      console.error("❌ Error processing private message:", error);
     }
   };
 
   // ===== WEB SOCKET CONNECTION FUNCTIONS =====
   
+  // Called when WebSocket connection is established
+  const onConnect = () => {
+    console.log("Connected to WebSocket");
+    connected.current = true;
+    setIsOnline(true); // Set user as online when connected
 
+    // Add current user to online users list
+    setOnlineUsers(prev => new Set([...prev, username]));
+
+    // Subscribe to public chat channel
+    stompClient.subscribe("/chatroom/public", onMessageReceived);
+    console.log("Subscribed to /chatroom/public");
+    
+    // Subscribe to private messages for this user
+    stompClient.subscribe(`/user/${username}/private`, onPrivateMessage);
+    console.log(`Subscribed to /user/${username}/private`);
+
+    userJoin(); // Send join message to public chat
+  };
 
   // Called when WebSocket connection fails
   const onError = (err) => {
-    logger.error("WebSocket connection error", { error: err.message });
+    console.error("WebSocket connection error:", err);
     setIsOnline(false); // Set user as offline when connection fails
     
     // Remove current user from online users list
@@ -408,33 +328,10 @@ export const ChatPage = () => {
     // Try to reconnect after a delay
     setTimeout(() => {
       if (!connected.current) {
-        logger.info("Attempting to reconnect");
+        console.log("Attempting to reconnect...");
         connect();
       }
     }, 5000); // Wait 5 seconds before trying to reconnect
-  };
-
-  // Called when WebSocket connection is established
-  const onConnect = () => {
-    logger.info("Connected to WebSocket");
-    connected.current = true;
-    setIsOnline(true); // Set user as online when connected
-
-    // Add current user to online users list
-    setOnlineUsers(prev => new Set([...prev, username]));
-
-    // Subscribe to public chat channel
-    stompClient.subscribe("/chatroom/public", onMessageReceived);
-    logger.debug("Subscribed to /chatroom/public");
-    
-    // Subscribe to private messages for this user
-    stompClient.subscribe(`/user/${username}/private`, onPrivateMessage);
-    logger.debug(`Subscribed to /user/${username}/private`);
-
-    userJoin(); // Send join message to public chat
-    
-    // Refresh online users after successful connection
-    fetchOnlineUsers();
   };
 
   // Initialize WebSocket connection
@@ -487,12 +384,12 @@ export const ChatPage = () => {
         timestamp: Date.now(), // Add timestamp for proper ordering
       };
 
-      logger.chat("Sending public message", {
-        content: message,
-        status: chatMessage.status,
-        websocketConnected: connected.current,
-        currentTab: tab
-      });
+      console.log("=== SENDING PUBLIC MESSAGE ===");
+      console.log("Message object:", chatMessage);
+      console.log("Message content:", message);
+      console.log("Message status:", chatMessage.status);
+      console.log("WebSocket connected:", connected.current);
+      console.log("Current tab:", tab);
 
       // Send message via WebSocket to backend
       try {
@@ -501,15 +398,15 @@ export const ChatPage = () => {
           {},
           JSON.stringify(chatMessage)
         );
-        logger.debug("Public message sent successfully");
+        console.log("✅ Message sent via WebSocket successfully");
       } catch (error) {
-        logger.error("Error sending message via WebSocket", { error: error.message });
+        console.error("❌ Error sending message via WebSocket:", error);
       }
 
       setMessage(""); // Clear message input
       setIsSending(false); // Stop loading
     } else {
-      logger.debug("Message is empty, not sending");
+      console.log("Message is empty, not sending");
     }
   };
 
@@ -526,28 +423,27 @@ export const ChatPage = () => {
         timestamp: Date.now(), // Add timestamp for proper ordering
       };
 
-      logger.chat("Sending private message", {
-        from: username,
-        to: receiver,
-        content: message,
-        websocketConnected: connected.current,
-        currentTab: tab
-      });
+      console.log("=== SENDING PRIVATE MESSAGE ===");
+      console.log("Message object:", chatMessage);
+      console.log("From:", username, "To:", receiver);
+      console.log("Message content:", message);
+      console.log("WebSocket connected:", connected.current);
+      console.log("Current tab:", tab);
 
       try {
         // Send message via WebSocket to backend
         stompClient.send("/app/private-message", {}, JSON.stringify(chatMessage));
-        logger.debug("Private message sent successfully");
+        console.log("✅ Private message sent via WebSocket successfully");
 
         setMessage(""); // Clear message input
       } catch (error) {
-        logger.error("Error sending private message", { error: error.message });
+        console.error("❌ Error sending private message:", error);
         // The backend will store it and deliver when the user comes back online
       }
       
       setIsSending(false); // Stop loading
     } else {
-      logger.debug("Message is empty or no receiver selected");
+      console.log("Message is empty or no receiver selected");
     }
   };
 
@@ -557,22 +453,8 @@ export const ChatPage = () => {
   const tabReceiverSet = (name) => {
     setReceiver(name); // Set message receiver
     setTab(name); // Switch to user's chat tab
-    
-    // Clear unread messages for this user when switching to their chat
+    // Ensure we have chat history for this user
     if (name && name !== "CHATROOM") {
-      setUnreadMessages(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(name);
-        return newSet;
-      });
-      
-      // Add to recent chats
-      setRecentChats(prev => new Set([...prev, name]));
-      
-      // Mark all messages as read when opening the chat
-      markAllMessagesAsRead(username, name);
-      
-      // Ensure we have chat history for this user
       setPrivateChats((prevChats) => {
         if (!prevChats.has(name)) {
           const newChats = new Map(prevChats);
@@ -589,7 +471,7 @@ export const ChatPage = () => {
   const fetchChatHistory = async (user1, user2) => {
     try {
       const response = await api.get(
-        `/chat/history/${user1}/${user2}` // API endpoint for chat history
+        `/users/api/messages/history/${user1}/${user2}` // API endpoint for chat history
       );
 
       if (response.status === 200) {
@@ -608,15 +490,12 @@ export const ChatPage = () => {
           newChats.set(user2, convertedMessages); // Update chat history for this user
           return newChats;
         });
-        logger.api("Chat history loaded", { 
-          user: user2, 
-          messageCount: convertedMessages.length 
-        });
+        console.log(`Chat history loaded for ${user2}:`, convertedMessages.length, 'messages');
       } else {
-        logger.error("Failed to fetch chat history", { status: response.status });
+        console.error("Failed to fetch chat history:", response.status);
       }
     } catch (error) {
-      logger.error("Error fetching chat history", { error: error.message });
+      console.error("Error fetching chat history:", error);
       // Set empty array on error to ensure UI works
       setPrivateChats((prevChats) => {
         const newChats = new Map(prevChats);
@@ -628,55 +507,49 @@ export const ChatPage = () => {
 
   // Fetch public chat history from the backend
   const fetchPublicChatHistory = async () => {
-    logger.api("Fetching public chat history");
+    console.log("=== FETCHING PUBLIC CHAT HISTORY ===");
     try {
-      const response = await api.get('/chat/public/history');
-      logger.debug("API response", { 
-        status: response.status, 
-        dataLength: response.data?.length 
-      });
+      const response = await api.get('/users/api/messages/public/history');
+      console.log("API response status:", response.status);
+      console.log("API response data:", response.data);
 
       if (response.status === 200) {
         const messages = response.data || [];
-        logger.debug("Raw messages from backend", { count: messages.length });
+        console.log('Raw messages from backend:', messages);
+        console.log('Number of messages received:', messages.length);
         
         // Filter out messages with null content and only show actual chat messages
         const validMessages = messages.filter(msg => {
           const isValid = msg.message && msg.message.trim() !== '';
-          logger.debug("Message validation", { 
-            sender: msg.senderName, 
-            message: msg.message, 
-            isValid 
-          });
+          console.log(`Message from ${msg.senderName}: "${msg.message}" - Valid: ${isValid}`);
           return isValid;
         });
-        logger.debug("Valid messages count", { count: validMessages.length });
+        console.log('Valid messages (with content):', validMessages.length);
         
         // Convert database messages to frontend format
         const convertedMessages = validMessages.map(msg => {
+          console.log('Processing message:', msg);
           const converted = {
             senderName: msg.senderName || 'Unknown',
             message: msg.message || '',
             status: "MESSAGE", // Always set to MESSAGE for public chat
             timestamp: msg.timestamp || Date.now()
           };
-          logger.debug("Converted message", converted);
+          console.log('Converted message:', converted);
           return converted;
         });
         
+        console.log('Converted messages:', convertedMessages);
         setPublicChats(convertedMessages);
-        logger.api("Public chat history loaded", { messageCount: convertedMessages.length });
+        console.log('Public chat history loaded:', convertedMessages.length, 'messages');
       } else {
-        logger.error("Failed to fetch public chat history", { 
-          status: response.status, 
-          data: response.data 
-        });
+        console.error("Failed to fetch public chat history:", response.status);
+        console.error("Response data:", response.data);
       }
     } catch (error) {
-      logger.error("Error fetching public chat history", { 
-        error: error.message, 
-        stack: error.stack 
-      });
+      console.error("Error fetching public chat history:", error);
+      console.error("Error details:", error.message);
+      console.error("Error stack:", error.stack);
       setPublicChats([]); // Set empty array on error
     }
   };
@@ -684,19 +557,19 @@ export const ChatPage = () => {
   // Delete conversation with a specific user
   const deleteConversation = async (targetUsername) => {
     if (!targetUsername || targetUsername === "CHATROOM") {
-      logger.debug("Cannot delete public chat or invalid user");
+      console.log("Cannot delete public chat or invalid user");
       return;
     }
 
     setIsDeleting(true);
-    logger.api("Deleting conversation", { targetUsername });
+    console.log(`Deleting conversation with ${targetUsername}`);
 
     try {
       // Call backend API to delete conversation
-      const response = await api.delete(`/chat/delete/${username}/${targetUsername}`);
+      const response = await api.delete(`/users/api/messages/delete/${username}/${targetUsername}`);
       
       if (response.status === 200) {
-        logger.api("Conversation deleted successfully", { targetUsername });
+        console.log(`Conversation with ${targetUsername} deleted successfully`);
         
         // Remove conversation from local state
         setPrivateChats((prevChats) => {
@@ -715,11 +588,11 @@ export const ChatPage = () => {
         // Show success message (you can add a toast notification here)
         alert(`Your messages in the conversation with ${targetUsername} have been deleted`);
       } else {
-        logger.error("Failed to delete conversation", { status: response.status });
+        console.error("Failed to delete conversation:", response.status);
         alert("Failed to delete conversation. Please try again.");
       }
     } catch (error) {
-      logger.error("Error deleting conversation", { error: error.message });
+      console.error("Error deleting conversation:", error);
       alert("Error deleting conversation. Please try again.");
     } finally {
       setIsDeleting(false);
@@ -729,14 +602,14 @@ export const ChatPage = () => {
   // Delete all public chat messages
   const deletePublicChat = async () => {
     setIsDeleting(true);
-    logger.api("Deleting public chat messages");
+    console.log("Deleting public chat messages");
 
     try {
       // Call backend API to delete public chat
-      const response = await api.delete(`/chat/delete/public`);
+      const response = await api.delete(`/users/api/messages/delete/public`);
       
       if (response.status === 200) {
-        logger.api("Public chat messages deleted successfully");
+        console.log("Public chat messages deleted successfully");
         
         // Clear public chat from local state
         setPublicChats([]);
@@ -744,58 +617,25 @@ export const ChatPage = () => {
         // Show success message
         alert("Public chat messages have been deleted");
       } else {
-        logger.error("Failed to delete public chat", { status: response.status });
+        console.error("Failed to delete public chat:", response.status);
         alert("Failed to delete public chat. Please try again.");
       }
     } catch (error) {
-      logger.error("Error deleting public chat", { error: error.message });
+      console.error("Error deleting public chat:", error);
       alert("Error deleting public chat. Please try again.");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Mark all messages as read between two users
-  const markAllMessagesAsRead = async (sender, receiver) => {
-    try {
-      await api.post('/chat/mark-all-read', null, {
-        params: {
-          sender: sender,
-          receiver: receiver
-        }
-      });
-      logger.api("Marked all messages as read", { sender, receiver });
-    } catch (error) {
-      logger.error("Error marking messages as read", { error: error.message });
-    }
-  };
-
-  // ===== SCHEDULED MESSAGE FUNCTIONS =====
-
-  const handleScheduleMessage = async (requestData) => {
-    try {
-      const response = await api.post('/chat/schedule-message', requestData);
-      logger.info('Message scheduled successfully:', response.data);
-      alert('Message scheduled successfully!');
-    } catch (error) {
-      logger.error('Error scheduling message:', error);
-      throw new Error(error.response?.data || 'Failed to schedule message');
-    }
-  };
-
-  const handleCancelScheduledMessage = (messageId) => {
-    logger.info('Scheduled message canceled:', messageId);
-    // The ScheduledMessagesList component will handle the API call
-  };
-
   // Fetch initial online users
   const fetchOnlineUsers = async () => {
     try {
-      const response = await api.get('/chat/online-users');
-      logger.api("Fetched online users", { count: response.data?.length });
+      const response = await api.get('/users/online-users');
+      console.log('Fetched online users:', response.data);
       setOnlineUsers(new Set(response.data));
     } catch (error) {
-      logger.error("Error fetching online users", { error: error.message });
+      console.error('Error fetching online users:', error);
     }
   };
 
@@ -832,22 +672,11 @@ export const ChatPage = () => {
             {/* Pinned Users Section - Quick access to frequently contacted users */}
             <PinnedUsers 
               currentUser={username}
-              pinnedUsers={pinnedUsers}
               onUserSelect={(user) => {
                 setSelectedUser(user); // Set selected user
                 setReceiver(user.username); // Set message receiver
                 setTab(user.username); // Switch to user's chat tab
                 if (user.username) {
-                  // Clear unread messages for this user
-                  setUnreadMessages(prev => {
-                    const newSet = new Set(prev);
-                    newSet.delete(user.username);
-                    return newSet;
-                  });
-                  
-                  // Mark all messages as read when opening the chat
-                  markAllMessagesAsRead(username, user.username);
-                  
                   // Initialize empty chat array if user doesn't exist in privateChats
                   setPrivateChats((prevChats) => {
                     if (!prevChats.has(user.username)) {
@@ -860,14 +689,7 @@ export const ChatPage = () => {
                   fetchChatHistory(username, user.username); // Load chat history
                 }
               }}
-              onUnpin={(pinnedUsername) => {
-                // Remove from pinned users
-                setPinnedUsers(prev => prev.filter(user => user !== pinnedUsername));
-                logger.debug('User unpinned from PinnedUsers', { pinnedUsername });
-              }}
               selectedUser={selectedUser}
-              onlineUsers={onlineUsers}
-              unreadMessages={unreadMessages}
             />
             
             {/* Public Chat Room Option - Switch to public chat */}
@@ -899,8 +721,6 @@ export const ChatPage = () => {
                     currentUser={username}
                     isSelected={tab === name} // Highlight if this user is selected
                     isOnline={onlineUsers.has(name)} // Check if user is online
-                    hasUnreadMessage={unreadMessages.has(name)} // Show blue dot for unread messages
-                    pinnedUsers={pinnedUsers} // Pass pinned users for status checking
                     onUserSelect={(user) => {
                       tabReceiverSet(user.username); // Switch to user's chat
                       fetchChatHistory(username, user.username); // Load chat history
@@ -949,68 +769,18 @@ export const ChatPage = () => {
                   {onlineUsers.has(tab) ? 'Online' : 'Offline'}
                 </span>
               </div>
-              <div className="d-flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-outline-primary btn-sm d-flex align-items-center gap-2"
-                  onClick={() => setShowScheduleModal(true)}
-                  title="Schedule a message"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                >
-                  <span style={{ fontSize: '16px' }}>📅</span>
-                  <span>Schedule</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-info btn-sm d-flex align-items-center gap-2"
-                  onClick={() => setShowScheduledList(true)}
-                  title="View scheduled messages"
-                  style={{ 
-                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: '600',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseOver={(e) => {
-                    e.target.style.transform = 'translateY(-2px)';
-                    e.target.style.boxShadow = '0 4px 12px rgba(240, 147, 251, 0.4)';
-                  }}
-                  onMouseOut={(e) => {
-                    e.target.style.transform = 'translateY(0)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                >
-                  <span style={{ fontSize: '16px' }}>⏰</span>
-                  <span>Scheduled</span>
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-outline-danger btn-sm"
-                  onClick={() => {
-                    if (window.confirm(`Are you sure you want to delete your messages in the conversation with ${tab}? This will only delete messages you sent, not messages from ${tab}. This action cannot be undone.`)) {
-                      deleteConversation(tab);
-                    }
-                  }}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? "Deleting..." : "Delete Chat"}
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm"
+                onClick={() => {
+                  if (window.confirm(`Are you sure you want to delete your messages in the conversation with ${tab}? This will only delete messages you sent, not messages from ${tab}. This action cannot be undone.`)) {
+                    deleteConversation(tab);
+                  }
+                }}
+                disabled={isDeleting}
+              >
+                {isDeleting ? "Deleting..." : "Delete Chat"}
+              </button>
             </div>
           )}
 
@@ -1096,28 +866,6 @@ export const ChatPage = () => {
           />
         </div>
       </div>
-
-      {/* Scheduled Message Modal */}
-      <ScheduledMessageModal
-        isOpen={showScheduleModal}
-        onClose={() => setShowScheduleModal(false)}
-        onSchedule={handleScheduleMessage}
-        currentUser={username}
-        selectedUser={receiver}
-      />
-
-      {/* Scheduled Messages List Modal */}
-      {showScheduledList && (
-        <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-xl modal-dialog-centered">
-            <ScheduledMessagesList
-              currentUser={username}
-              onCancelMessage={handleCancelScheduledMessage}
-              onClose={() => setShowScheduledList(false)}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };
