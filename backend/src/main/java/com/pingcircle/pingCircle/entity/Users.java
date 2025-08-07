@@ -37,7 +37,7 @@ public class Users {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Size(min = 4, message = "Password must be at least 4 characters")
     @Column(nullable = false)
     private String password;
 
@@ -46,6 +46,9 @@ public class Users {
 
     @Column(name = "last_login")
     private java.time.LocalDateTime lastLogin;
+
+    @Column(name = "failed_login_attempts")
+    private Integer failedLoginAttempts = 0;
 
     @ElementCollection
     @CollectionTable(name = "user_pinned_chats", joinColumns = @JoinColumn(name = "user_id"))
