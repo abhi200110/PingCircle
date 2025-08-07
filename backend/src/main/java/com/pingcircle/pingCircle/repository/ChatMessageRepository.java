@@ -188,4 +188,20 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
      * @return List of public chat messages in chronological order
      */
     List<ChatMessage> findByReceiverNameOrderByTimestampAsc(String receiverName);
+
+    /**
+     * Finds all messages sent by a specific user
+     * 
+     * This query retrieves all messages where the specified user is the sender.
+     * Useful for account deletion to clean up a user's message history.
+     * 
+     * Use Cases:
+     * - Account deletion cleanup
+     * - User message history analysis
+     * - Data privacy compliance
+     * 
+     * @param senderName The username of the message sender
+     * @return List of all messages sent by the user
+     */
+    List<ChatMessage> findBySenderName(String senderName);
 }
