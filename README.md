@@ -5,8 +5,6 @@
 
 A real-time chat application built with Spring Boot backend and React frontend, featuring WebSocket communication, JWT authentication, and modern UI design.
 
-![PingCircle Logo](https://img.shields.io/badge/PingCircle-Chat%20App-blue?style=for-the-badge&logo=chat)
-
 ## 🌟 Features
 
 ### 🔐 Authentication & Security
