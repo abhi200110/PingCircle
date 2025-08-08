@@ -1,8 +1,9 @@
+# PingCircle- A web based chat application
+
+
 # PingCircle 💬
 
 A real-time chat application built with Spring Boot backend and React frontend, featuring WebSocket communication, JWT authentication, and modern UI design.
-
-![PingCircle Logo](https://img.shields.io/badge/PingCircle-Chat%20App-blue?style=for-the-badge&logo=chat)
 
 ## 🌟 Features
 
@@ -260,27 +261,6 @@ jwt.expiration=86400000
 
 Backend logs are available in the console where you run the Spring Boot application. Frontend logs can be viewed in the browser's developer console.
 
-## 🤝 Contributing
-
-We welcome contributions! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
-
-### Development Guidelines
-
-- Follow Java coding conventions for backend
-- Use ESLint and Prettier for frontend code formatting
-- Write meaningful commit messages
-- Add tests for new features
-- Update documentation as needed
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -289,18 +269,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Bootstrap team for the responsive CSS framework
 - All contributors and users of PingCircle
 
-## 📞 Support
 
-If you encounter any issues or have questions:
-
-- Create an issue on GitHub
-- Check the troubleshooting section above
-- Review the API documentation
-
----
-
-**Made with ❤️ by the PingCircle Team**
-
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/PingCircle?style=social)](https://github.com/yourusername/PingCircle/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/PingCircle?style=social)](https://github.com/yourusername/PingCircle/network)
-[![GitHub issues](https://img.shields.io/github/issues/yourusername/PingCircle)](https://github.com/yourusername/PingCircle/issues)
