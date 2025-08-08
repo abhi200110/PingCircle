@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Set;
 
@@ -76,18 +77,22 @@ public class UserController {
     /**
      * User registration endpoint
      * 
-     * Creates a new user account with the provided information.
-     * Password is automatically hashed using BCrypt before storage.
+     * Creates a new user account with the provided information and automatically
+     * logs the user in by returning a JWT token. Password is automatically 
+     * hashed using BCrypt before storage.
      * 
      * @param userDto User registration data (username, password, email, name)
-     * @return Success message if user created successfully
+     * @return LoginResponse with JWT token, username, and success message
      * @throws RuntimeException if user already exists or validation fails
      */
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody UserDto userDto) {
+    public ResponseEntity<?> signup(@RequestBody @Valid UserDto userDto) {
         try {
             Users user = userService.createUser(userDto);
-            return ResponseEntity.ok("User created successfully");
+            // Generate JWT token for the newly created user
+            String token = userService.authenticateUser(userDto.getUsername(), userDto.getPassword());
+            LoginResponse response = new LoginResponse(token, userDto.getUsername(), "User created and logged in successfully");
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             String errorMessage = e.getMessage();
             
@@ -96,7 +101,7 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorMessage);
             }
             
-            // Return 400 Bad Request for validation errors
+            // Return 400 Bad Request for other business logic errors
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
         }
     }

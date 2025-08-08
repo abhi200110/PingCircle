@@ -138,45 +138,6 @@ public class UserService {
      * @throws RuntimeException if username or email already exists
      */
     public Users createUser(UserDto userDto) {
-        // Validate input
-        if (userDto.getUsername() == null || userDto.getUsername().trim().isEmpty()) {
-            throw new RuntimeException("Username is required");
-        }
-        
-        if (userDto.getName() == null || userDto.getName().trim().isEmpty()) {
-            throw new RuntimeException("Name is required");
-        }
-        
-        if (userDto.getEmail() == null || userDto.getEmail().trim().isEmpty()) {
-            throw new RuntimeException("Email is required");
-        }
-        
-        if (userDto.getPassword() == null || userDto.getPassword().trim().isEmpty()) {
-            throw new RuntimeException("Password is required");
-        }
-        
-        // Validate username length
-        if (userDto.getUsername().length() < 3 || userDto.getUsername().length() > 20) {
-            throw new RuntimeException("Username must be between 3 and 20 characters");
-        }
-        
-        // Enhanced password validation
-        if (userDto.getPassword().length() < 6) {
-            throw new RuntimeException("Password must be at least 6 characters");
-        }
-        
-        // Check for at least one letter and one number
-        String password = userDto.getPassword();
-        if (!password.matches("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{6,}$")) {
-            throw new RuntimeException("Password must contain at least one letter and one number");
-        }
-        
-        // Enhanced email validation
-        String email = userDto.getEmail();
-        if (!email.matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
-            throw new RuntimeException("Please enter a valid email address");
-        }
-
         // Check if username already exists
         if (userRepository.existsByUsername(userDto.getUsername().trim())) {
             throw new RuntimeException("Username already exists");
@@ -185,6 +146,15 @@ public class UserService {
         // Check if email already exists
         if (userRepository.existsByEmail(userDto.getEmail().trim())) {
             throw new RuntimeException("Email already exists");
+        }
+
+        // Business rule: Password must contain at least one letter and one number
+        String password = userDto.getPassword();
+        boolean hasLetter = password.matches(".*[A-Za-z].*");
+        boolean hasNumber = password.matches(".*\\d.*");
+        
+        if (!hasLetter || !hasNumber) {
+            throw new RuntimeException("Password must contain at least one letter and one number");
         }
 
         // Create new user entity
