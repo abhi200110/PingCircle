@@ -18,10 +18,54 @@ const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
     setError(null);
     setSuccess(false);
 
+    // Client-side validation
+    if (!username || username.length < 3 || username.length > 20) {
+      setError("Username must be between 3 and 20 characters");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!name || name.trim().length === 0) {
+      setError("Name is required");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!email || !email.includes('@')) {
+      setError("Please enter a valid email address");
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      setError("Password must be at least 6 characters");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Check for at least one letter and one number
+    const hasLetter = /[A-Za-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    if (!hasLetter || !hasNumber) {
+      setError("Password must contain at least one letter and one number");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const payload = { username, name, email, password };
       const response = await axios.post("http://localhost:8080/api/users/signup", payload);
-      onSignupSuccess(username);
+      
+      // Handle the new response format that includes JWT token
+      if (response.data && response.data.token) {
+        // Store the JWT token
+        localStorage.setItem("chat-token", response.data.token);
+        onSignupSuccess(username);
+      } else {
+        // Fallback for old response format
+        onSignupSuccess(username);
+      }
+      
       setSuccess(true);
       setUsername("");
       setName("");
@@ -29,7 +73,26 @@ const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
       setPassword("");
     } catch (error) {
       if (error.response) {
-        setError(error.response.data.message || "Signup failed.");
+        // Handle different response formats
+        let errorMessage;
+        if (typeof error.response.data === 'string') {
+          // Backend returns string directly
+          errorMessage = error.response.data;
+        } else if (error.response.data && typeof error.response.data === 'object') {
+          // Backend returns object (validation errors or object with message)
+          if (error.response.data.message) {
+            // Object with message property
+            errorMessage = error.response.data.message;
+          } else {
+            // Validation errors object with field names as keys
+            const validationErrors = Object.values(error.response.data).join(', ');
+            errorMessage = validationErrors || "Validation failed. Please check your input.";
+          }
+        } else {
+          // Fallback error message
+          errorMessage = "Signup failed. Please check your input and try again.";
+        }
+        setError(errorMessage);
       } else {
         setError("Network error. Please try again.");
       }
@@ -115,7 +178,7 @@ const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
           {error && <div className="alert alert-danger py-1 px-2">{error}</div>}
           {success && (
             <div className="alert alert-success py-1 px-2">
-              ✅ Signup successful! You can now log in.
+              Signup successful! Redirecting to chat...
             </div>
           )}
 
@@ -164,6 +227,9 @@ const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
               {showPassword ? "Hide" : "Show"}
             </button>
           </div>
+          <small className="text-muted mb-3 d-block">
+            Password must be at least 6 characters and contain at least one letter and one number.
+          </small>
 
           <button type="submit" className="btn signup-btn w-100 mb-3" disabled={isSubmitting}>
             {isSubmitting ? "Creating..." : "Sign Up"}
