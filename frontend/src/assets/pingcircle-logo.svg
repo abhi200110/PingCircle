@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient definitions -->
+    <linearGradient id="circleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10B981;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="bubbleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60A5FA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <!-- Drop shadow filter -->
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-opacity="0.3" flood-color="#000"/>
+    </filter>
+  </defs>
+
+  <!-- Main circle background -->
+  <circle cx="100" cy="100" r="85" fill="url(#circleGradient)" filter="url(#dropShadow)"/>
+
+  <!-- Chat bubble 1 (larger, main bubble) -->
+  <path d="M 65 70 
+           Q 65 55 80 55 
+           L 120 55 
+           Q 135 55 135 70 
+           L 135 90 
+           Q 135 105 120 105 
+           L 95 105 
+           L 85 115 
+           L 90 105 
+           L 80 105 
+           Q 65 105 65 90 
+           Z" 
+        fill="white" opacity="0.9"/>
+
+  <!-- Chat bubble 2 (smaller, response bubble) -->
+  <path d="M 75 125 
+           Q 75 115 85 115 
+           L 115 115 
+           Q 125 115 125 125 
+           L 125 140 
+           Q 125 150 115 150 
+           L 95 150 
+           L 85 160 
+           L 90 150 
+           L 85 150 
+           Q 75 150 75 140 
+           Z" 
+        fill="url(#bubbleGradient)" opacity="0.8"/>
+
+  <!-- Ping dots inside main bubble -->
+  <circle cx="90" cy="80" r="3" fill="#3B82F6" opacity="0.7"/>
+  <circle cx="100" cy="80" r="3" fill="#3B82F6" opacity="0.7"/>
+  <circle cx="110" cy="80" r="3" fill="#3B82F6" opacity="0.7"/>
+
+  <!-- Connection dots around the circle (representing network/ping) -->
+  <circle cx="100" cy="25" r="4" fill="white" opacity="0.8"/>
+  <circle cx="147" cy="47" r="4" fill="white" opacity="0.8"/>
+  <circle cx="175" cy="100" r="4" fill="white" opacity="0.8"/>
+  <circle cx="147" cy="153" r="4" fill="white" opacity="0.8"/>
+  <circle cx="100" cy="175" r="4" fill="white" opacity="0.8"/>
+  <circle cx="53" cy="153" r="4" fill="white" opacity="0.8"/>
+  <circle cx="25" cy="100" r="4" fill="white" opacity="0.8"/>
+  <circle cx="53" cy="47" r="4" fill="white" opacity="0.8"/>
+
+  <!-- Subtle connecting lines (representing network connections) -->
+  <path d="M 100 25 Q 100 50 85 70" stroke="white" stroke-width="1" fill="none" opacity="0.3"/>
+  <path d="M 147 47 Q 130 60 125 85" stroke="white" stroke-width="1" fill="none" opacity="0.3"/>
+  <path d="M 175 100 Q 150 100 135 115" stroke="white" stroke-width="1" fill="none" opacity="0.3"/>
+</svg>
