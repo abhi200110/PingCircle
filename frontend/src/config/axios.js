@@ -23,14 +23,15 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token expiration
+// Response interceptor to handle token expiration and authentication errors
 api.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Token expired, invalid, or unauthorized access
+      console.log('Authentication error:', error.response?.status, '- Redirecting to login');
       localStorage.removeItem('chat-token');
       localStorage.removeItem('chat-username');
       window.location.href = '/login';

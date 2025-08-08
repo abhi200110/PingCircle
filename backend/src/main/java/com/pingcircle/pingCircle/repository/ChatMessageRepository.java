@@ -171,4 +171,37 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
     @Query("SELECT DISTINCT m.senderName FROM ChatMessage m WHERE m.receiverName = :username " +
            "UNION SELECT DISTINCT m.receiverName FROM ChatMessage m WHERE m.senderName = :username")
     List<String> findUserContacts(@Param("username") String username);
+
+    /**
+     * Retrieves public chat messages
+     * 
+     * This query finds all messages sent to the public chat room.
+     * Public messages are identified by having "PUBLIC" as the receiver name.
+     * Messages are ordered chronologically (oldest first).
+     * 
+     * Use Cases:
+     * - Loading public chat history
+     * - Displaying public messages in chronological order
+     * - Initial public chat load when joining the chat room
+     * 
+     * @param receiverName The receiver name to filter by (should be "PUBLIC")
+     * @return List of public chat messages in chronological order
+     */
+    List<ChatMessage> findByReceiverNameOrderByTimestampAsc(String receiverName);
+
+    /**
+     * Finds all messages sent by a specific user
+     * 
+     * This query retrieves all messages where the specified user is the sender.
+     * Useful for account deletion to clean up a user's message history.
+     * 
+     * Use Cases:
+     * - Account deletion cleanup
+     * - User message history analysis
+     * - Data privacy compliance
+     * 
+     * @param senderName The username of the message sender
+     * @return List of all messages sent by the user
+     */
+    List<ChatMessage> findBySenderName(String senderName);
 }

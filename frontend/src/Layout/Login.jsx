@@ -1,5 +1,8 @@
+// src/pages/Login.jsx
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import "./button.css";
 import SignupForm from "./SignupForm";
 import axios from "axios";
 
@@ -9,6 +12,7 @@ export const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSignup, setIsSignup] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("chat-username");
@@ -54,45 +58,42 @@ export const Login = () => {
 
   return (
     <>
-      {/* Inline styles for styling the page directly in JSX */}
       <style>
         {`
           .login-bg {
-            background: linear-gradient(
-                rgba(0, 0, 0, 0.5),
-                rgba(0, 0, 0, 0.5)
-              ),
-              url('https://images.unsplash.com/photo-1542751110-97427bbecf20?auto=format&fit=crop&w=1950&q=80') center center/cover no-repeat;
+            background: linear-gradient(to right, #eef2f3, #8ec5fc, #c3eafcff);
           }
 
           .login-card {
-            backdrop-filter: blur(15px);
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(0, 123, 255, 0.3);
             max-width: 400px;
             width: 90%;
-            color: white;
+            color: #003366;
             padding: 2rem;
             border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
           }
 
           .glass-input {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #cfe2ff;
             border-radius: 12px;
-            color: white;
-            text-align: center;
+            color: #003366;
+            padding-left: 1rem;
+            padding-right: 1rem;
           }
 
           .glass-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
+            color: #6c757d;
           }
 
           .glass-input:focus {
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.95);
             outline: none;
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
-            color: white;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.4);
+            color: #003366;
           }
 
           .login-btn {
@@ -106,15 +107,32 @@ export const Login = () => {
           .login-btn:hover {
             background-color: #0b5ed7;
           }
+
+          .link-button {
+            color: #0d6efd;
+          }
+
+          .pingcircle-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #0d6efd;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+          }
         `}
       </style>
 
       <div className="login-bg d-flex align-items-center justify-content-center vh-100">
         {isSignup ? (
-          <SignupForm onSignupSuccess={handleSignupSuccess} />
+          <SignupForm
+            onSignupSuccess={handleSignupSuccess}
+            onBackToLogin={() => setIsSignup(false)}
+          />
         ) : (
           <div className="login-card shadow">
-            <h2 className="mb-4 text-center text-white fw-bold">PingCircle</h2>
+            <div className="pingcircle-title">PingCircle</div>
+
             {error && <div className="alert alert-danger py-1 px-2">{error}</div>}
 
             <input
@@ -126,14 +144,24 @@ export const Login = () => {
               onKeyUp={(e) => e.key === "Enter" && handleLogin()}
             />
 
-            <input
-              type="password"
-              className="form-control glass-input mb-3"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onKeyUp={(e) => e.key === "Enter" && handleLogin()}
-            />
+            <div className="input-group mb-3">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="form-control glass-input"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyUp={(e) => e.key === "Enter" && handleLogin()}
+              />
+              <button
+                type="button"
+                className="btn btn-outline-secondary"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </div>
 
             <button className="btn login-btn w-100 mb-3" onClick={handleLogin}>
               Connect
@@ -141,7 +169,7 @@ export const Login = () => {
 
             <div className="text-center">
               <button
-                className="btn btn-link text-white-50"
+                className="btn btn-link link-button"
                 onClick={() => setIsSignup(true)}
               >
                 Don't have an account? <strong>Sign up</strong>

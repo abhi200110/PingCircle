@@ -2,138 +2,191 @@ import { useState } from "react";
 import axios from "axios";
 import { PropTypes } from "prop-types";
 
-const SignupForm = ({ onSignupSuccess }) => {
+const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
   const [username, setUsername] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(false);
 
     try {
-      const payload = {
-        username,
-        name,
-        email,
-        password,
-      };
-      console.log("Sending payload:", payload);
-
-      const response = await axios.post(
-        "http://localhost:8080/api/users/signup",
-        payload
-      );
-
-      console.log("Signup successful:", response.data);
+      const payload = { username, name, email, password };
+      const response = await axios.post("http://localhost:8080/api/users/signup", payload);
       onSignupSuccess(username);
+      setSuccess(true);
       setUsername("");
       setName("");
       setEmail("");
       setPassword("");
-      setError(null);
     } catch (error) {
-      console.error("Error signing up:", error);
       if (error.response) {
-        console.error("Response data:", error.response.data);
-        setError(
-          error.response.data.message || "Error signing up. Please try again."
-        );
+        setError(error.response.data.message || "Signup failed.");
       } else {
-        setError("Error signing up. Please try again.");
+        setError("Network error. Please try again.");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="d-flex align-items-center justify-content-center vh-100 bg-light">
-      <form
-        onSubmit={handleSubmit}
-        className="w-100 bg-white rounded shadow p-4 border border-primary"
-        style={{ maxWidth: "400px" }}
-      >
-        <h2 className="h3 fw-semibold mb-4 text-center text-primary">Sign Up</h2>
-        {error && <p className="text-danger mb-4">{error}</p>}
-        <div className="mb-3">
-          <label
-            htmlFor="username"
-            className="form-label fw-medium text-dark"
-          >
-            Username
-          </label>
+    <>
+      <style>
+        {`
+          .signup-card {
+            backdrop-filter: blur(20px);
+            background: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(0, 123, 255, 0.3);
+            max-width: 420px;
+            width: 90%;
+            color: #003366;
+            padding: 2rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+          }
+
+          .glass-input {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid #cfe2ff;
+            border-radius: 12px;
+            color: #003366;
+          }
+
+          .glass-input::placeholder {
+            color: #6c757d;
+          }
+
+          .glass-input:focus {
+            background: rgba(255, 255, 255, 0.95);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.4);
+            color: #003366;
+          }
+
+          .signup-btn {
+            background-color: #0d6efd;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px;
+            transition: 0.3s ease;
+          }
+
+          .signup-btn:hover {
+            background-color: #0b5ed7;
+          }
+
+          .link-button {
+            color: #0d6efd;
+          }
+
+          .pingcircle-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            color: #0d6efd;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+          }
+
+          .create-account-subtitle {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #004080;
+            text-align: center;
+            margin-bottom: 1.5rem;
+          }
+        `}
+      </style>
+
+      <div className="container my-5 d-flex justify-content-center">
+        <form className="signup-card" onSubmit={handleSubmit}>
+          <div className="pingcircle-title">PingCircle</div>
+          <div className="create-account-subtitle">Create Account</div>
+
+          {error && <div className="alert alert-danger py-1 px-2">{error}</div>}
+          {success && (
+            <div className="alert alert-success py-1 px-2">
+              ✅ Signup successful! You can now log in.
+            </div>
+          )}
+
           <input
             type="text"
-            id="username"
-            className="form-control border-primary"
+            className="form-control glass-input mb-3"
+            placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
           />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="name"
-            className="form-label fw-medium text-dark"
-          >
-            Name
-          </label>
+
           <input
             type="text"
-            id="name"
-            className="form-control border-primary"
+            className="form-control glass-input mb-3"
+            placeholder="Full Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-        </div>
-        <div className="mb-3">
-          <label
-            htmlFor="email"
-            className="form-label fw-medium text-dark"
-          >
-            Email
-          </label>
+
           <input
             type="email"
-            id="email"
-            className="form-control border-primary"
+            className="form-control glass-input mb-3"
+            placeholder="Email Address"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-        </div>
-        <div className="mb-4">
-          <label
-            htmlFor="password"
-            className="form-label fw-medium text-dark"
-          >
-            Password
-          </label>
-          <input
-            type="password"
-            id="password"
-            className="form-control border-primary"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        <div className="d-flex align-items-center justify-content-between">
-          <button
-            type="submit"
-            className="btn btn-primary w-100"
-          >
-            Sign Up
+
+          <div className="input-group mb-3">
+            <input
+              type={showPassword ? "text" : "password"}
+              className="form-control glass-input"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
+              onClick={() => setShowPassword(!showPassword)}
+              tabIndex={-1}
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+
+          <button type="submit" className="btn signup-btn w-100 mb-3" disabled={isSubmitting}>
+            {isSubmitting ? "Creating..." : "Sign Up"}
           </button>
-        </div>
-      </form>
-    </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              className="btn btn-link link-button"
+              onClick={onBackToLogin}
+            >
+              ← Back to Login
+            </button>
+          </div>
+        </form>
+      </div>
+    </>
   );
 };
 
-export default SignupForm;
-
 SignupForm.propTypes = {
   onSignupSuccess: PropTypes.func.isRequired,
+  onBackToLogin: PropTypes.func.isRequired,
 };
+
+export default SignupForm;
