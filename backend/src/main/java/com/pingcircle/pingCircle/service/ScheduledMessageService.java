@@ -301,11 +301,5 @@ public class ScheduledMessageService {
         scheduledMessageRepository.deleteBySenderName(username);
     }
 
-    /**
-     * Manual trigger for testing scheduled messages
-     */
-    public void manuallyTriggerScheduledMessages() {
-        log.info("=== MANUAL TRIGGER ===");
-        processScheduledMessages();
-    }
+
 }

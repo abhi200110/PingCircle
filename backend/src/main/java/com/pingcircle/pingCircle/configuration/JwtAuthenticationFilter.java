@@ -96,6 +96,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         
         // Continue with the filter chain
-        filterChain.doFilter(request, response);//this is the line that allows the request to continue
+        filterChain.doFilter(request, response);
     }
 }

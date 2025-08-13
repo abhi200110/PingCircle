@@ -23,29 +23,29 @@ public class ScheduledMessage {
     private Status status;
 
     @Column(nullable = false)
-    private Long scheduledTime; // When the message should be sent
+    private Long scheduledTime; 
 
     @Column(nullable = false)
-    private Long createdAt; // When the message was scheduled
+    private Long createdAt; 
 
     @Column(nullable = false)
-    private Boolean isSent = false; // Whether the message has been sent
+    private Boolean isSent = false; 
 
     @Enumerated(EnumType.STRING)
-    private MessageType messageType = MessageType.SCHEDULED; // Type of scheduled message
+    private MessageType messageType = MessageType.SCHEDULED;
 
-    private String reminderTitle; // For reminder messages
-    private String reminderDescription; // For reminder messages
+    private String reminderTitle; 
+    private String reminderDescription; 
 
 
     public enum MessageType {
-        SCHEDULED,    // Regular scheduled message
-        REMINDER,     // Reminder message
-        BIRTHDAY,     // Birthday reminder
-        ANNIVERSARY   // Anniversary reminder
+        SCHEDULED,    
+        REMINDER,     
+        BIRTHDAY,    
+        ANNIVERSARY   
     }
 
-    // Constructors
+    
     public ScheduledMessage(String senderName, String receiverName, String message, 
                           Status status, Long scheduledTime, MessageType messageType) {
         this.senderName = senderName;

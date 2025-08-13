@@ -39,7 +39,7 @@ const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange
       }
       
       // If not in the list, double-check with API
-      const response = await api.get(`/users/is-pinned?username=${currentUser}&pinnedUsername=${user.username}`);
+      const response = await api.get(`/users/isPinned?username=${currentUser}&pinnedUsername=${user.username}`);
       logger.debug('Pin status response', { response: response.data });
       setIsPinned(response.data);
     } catch (error) {
@@ -67,7 +67,7 @@ const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange
       // Optimistic update for better UX
       setIsPinned(newPinStatus);
       
-      const response = await api.post('/users/pin-user', {
+      const response = await api.post('/users/pinUser', {
         username: currentUser,
         pinnedUsername: user.username,
         pin: newPinStatus

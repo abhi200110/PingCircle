@@ -49,9 +49,9 @@ public class UserService {
         return userRepository.findAll();
     }
 
-    // Search for users by username or name
+
     public List<Users> searchUsers(String searchTerm) {
-        return userRepository.searchUsers(searchTerm);//search users by username or name
+        return userRepository.searchUsers(searchTerm);
     }
 
     // Create a new user account

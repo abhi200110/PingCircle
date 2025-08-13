@@ -12,29 +12,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-
 @Service
 public class JwtService {
     
-   
-    private static final String SECRET_KEY = "pingcircle";
+    // Fixed: Use a proper secret key that's at least 256 bits (32 bytes)
+    private static final String SECRET_KEY = "pingcircle2025secretkeyforjwtsecurityminimum256bits";
     
-  
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
-    
     
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
     
-    
     public String generateToken(String username) {
         return generateToken(new HashMap<>(), username);
     }
-    
     
     public String generateToken(Map<String, Object> extraClaims, String username) {
         return Jwts
@@ -47,17 +42,14 @@ public class JwtService {
                 .compact();                       
     }
     
- 
     public boolean isTokenValid(String token, String username) {
         final String extractedUsername = extractUsername(token);
         return (extractedUsername.equals(username)) && !isTokenExpired(token);
     }
     
-    
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
-    
     
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
@@ -72,9 +64,10 @@ public class JwtService {
                 .getBody();                    
     }
     
-   
+    // Fixed: Generate proper HMAC key from secret string
     private Key getSignInKey() {
-        byte[] keyBytes = java.util.Base64.getDecoder().decode(SECRET_KEY);
+        // Use the secret string directly as bytes for HMAC
+        byte[] keyBytes = SECRET_KEY.getBytes();
         return Keys.hmacShaKeyFor(keyBytes);
     }
 } 

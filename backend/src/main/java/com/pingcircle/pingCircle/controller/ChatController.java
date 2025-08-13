@@ -22,9 +22,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import com.pingcircle.pingCircle.repository.ScheduledMessageRepository;
 
 
-@Controller
 @RestController
 @RequiredArgsConstructor
 @Slf4j
@@ -34,7 +35,7 @@ public class ChatController {
     private final SimpMessagingTemplate simpMessagingTemplate;
     private final ChatService chatService;
     private final ScheduledMessageService scheduledMessageService;
-
+    private final ScheduledMessageRepository scheduledMessageRepository;
 
     private static final Set<String> onlineUsers = ConcurrentHashMap.newKeySet();
 
@@ -133,24 +134,10 @@ public class ChatController {
     }
 
     
-    public void handleUserDisconnection(String username) {
-        if (username != null && onlineUsers.remove(username)) {
-            log.info("User disconnected: {}. Online users: {}", username, onlineUsers);
-            
-            
-            Message leaveMessage = new Message();
-            leaveMessage.setSenderName(username);
-            leaveMessage.setStatus(Status.LEAVE);
-            leaveMessage.setReceiverName("PUBLIC");
-            
-            simpMessagingTemplate.convertAndSend("/chatroom/public", leaveMessage);
-        }
-    }
+
 
     
-    public Set<String> getOnlineUsers() {
-        return new java.util.HashSet<>(onlineUsers);
-    }
+
 
     
     @GetMapping("/online-users")
@@ -161,14 +148,10 @@ public class ChatController {
     }
 
     
-    public void addOnlineUser(String username) {
-        onlineUsers.add(username);
-    }
+
 
     
-    public void removeOnlineUser(String username) {
-        onlineUsers.remove(username);
-    }
+
 
     // ==================== REST API METHODS ====================
 
@@ -205,12 +188,7 @@ public class ChatController {
         }
     }
 
-    // Get unread message count
-    @GetMapping("/unread-count")
-    public ResponseEntity<Long> getUnreadMessageCount(@RequestParam String username) {
-        long count = chatService.getUnreadMessageCount(username);
-        return ResponseEntity.ok(count);
-    }
+
 
     // Mark message as read
     @PostMapping("/mark-read")
@@ -360,23 +338,47 @@ public class ChatController {
         }
     }
 
-    // Trigger scheduled messages
-    @PostMapping("/trigger-scheduled-messages")
-    public ResponseEntity<?> triggerScheduledMessages() {
+    // Test endpoint to manually trigger scheduled message processing
+    @PostMapping("/test-scheduled-processing")
+    public ResponseEntity<?> testScheduledProcessing() {
         try {
-            scheduledMessageService.manuallyTriggerScheduledMessages();
-            return ResponseEntity.ok("Scheduled messages processing triggered");
+            log.info("=== MANUAL TRIGGER OF SCHEDULED MESSAGE PROCESSING ===");
+            scheduledMessageService.processScheduledMessages();
+            return ResponseEntity.ok("Scheduled message processing completed");
         } catch (Exception e) {
-            log.error("Error triggering scheduled messages: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Error triggering scheduled messages: " + e.getMessage());
+            log.error("Error in manual scheduled processing: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error processing scheduled messages: " + e.getMessage());
         }
     }
 
-    // Test endpoint
-    @GetMapping("/test")
-    public ResponseEntity<?> testEndpoint() {
-        return ResponseEntity.ok("Backend is working!");
+    // Test endpoint to check scheduled messages in database
+    @GetMapping("/test-scheduled-messages")
+    public ResponseEntity<?> testScheduledMessages() {
+        try {
+            log.info("=== CHECKING SCHEDULED MESSAGES IN DATABASE ===");
+            long currentTime = System.currentTimeMillis();
+            List<ScheduledMessage> allMessages = scheduledMessageRepository.findAll();
+            List<ScheduledMessage> messagesToSend = scheduledMessageRepository.findMessagesToSend(currentTime);
+            
+            log.info("Total scheduled messages: {}", allMessages.size());
+            log.info("Messages ready to send: {}", messagesToSend.size());
+            
+            return ResponseEntity.ok(Map.of(
+                "totalMessages", allMessages.size(),
+                "messagesToSend", messagesToSend.size(),
+                "currentTime", currentTime,
+                "currentTimeReadable", new java.util.Date(currentTime)
+            ));
+        } catch (Exception e) {
+            log.error("Error checking scheduled messages: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error checking scheduled messages: " + e.getMessage());
+        }
     }
+
+
+
+
 }
 

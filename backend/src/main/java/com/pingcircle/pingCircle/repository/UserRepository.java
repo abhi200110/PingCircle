@@ -131,31 +131,4 @@ public interface UserRepository extends JpaRepository<Users, Long> {
      */
     @Query("SELECT u FROM Users u WHERE u.username LIKE %:searchTerm% OR u.name LIKE %:searchTerm%")
     List<Users> searchUsers(@Param("searchTerm") String searchTerm);
-    
-    /**
-     * Finds recently active users ordered by last login time
-     * 
-     * This query retrieves users who have logged in recently, ordered by their
-     * last login timestamp (most recent first). Useful for showing active users
-     * or suggesting potential chat partners.
-     * 
-     * Query Logic:
-     * - Filters out users who have never logged in (lastLogin IS NOT NULL)
-     * - Orders by lastLogin in descending order (most recent first)
-     * - Returns all recently active users
-     * 
-     * Use Cases:
-     * - Displaying active user list
-     * - Suggesting potential chat partners
-     * - User activity tracking
-     * - Online/offline status indicators
-     * 
-     * Performance Note:
-     * - Consider adding index on lastLogin field for better performance
-     * - May want to limit results for large user bases
-     * 
-     * @return List of recently active users, ordered by last login time (newest first)
-     */
-    @Query("SELECT u FROM Users u WHERE u.lastLogin IS NOT NULL ORDER BY u.lastLogin DESC")
-    List<Users> findRecentlyActiveUsers();
 }

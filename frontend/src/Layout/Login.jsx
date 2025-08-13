@@ -1,10 +1,10 @@
 // src/pages/Login.jsx
 
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./button.css";
 import SignupForm from "./SignupForm";
-import axios from "axios";
+import api from "../config/axios";
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -25,27 +25,55 @@ export const Login = () => {
     try {
       setError("");
 
-      if (username && password) {
-        const response = await axios.post("http://localhost:8080/api/users/login", {
-          username,
-          password,
-        });
-
-        if (response.status === 200) {
-          localStorage.setItem("chat-username", username);
-          localStorage.setItem("chat-token", response.data.token);
-          navigate("/chat");
-        }
-      } else {
+      if (!username.trim() || !password.trim()) {
         setError("Please enter both username and password.");
+        return;
+      }
+
+      console.log("Attempting login for username:", username);
+      
+      const response = await api.post("/users/login", {
+        username: username.trim(),
+        password: password.trim(),
+      });
+
+      console.log("Login response:", response);
+
+      if (response.status === 200 && response.data.token) {
+        localStorage.setItem("chat-username", username);
+        localStorage.setItem("jwt-token", response.data.token);
+        console.log("Login successful, navigating to chat");
+        navigate("/chat");
+      } else {
+        setError("Invalid response from server. Please try again.");
       }
     } catch (error) {
-      console.error("Error logging in:", error);
-      if (error.response?.status === 401) {
-        setError("Invalid username or password.");
-      } else if (error.response?.status === 404) {
-        setError("User not found.");
+      console.error("Login error details:", error);
+      
+      if (error.response) {
+        // Server responded with error status
+        console.error("Server error response:", error.response);
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 401) {
+          setError("Invalid username or password.");
+        } else if (status === 400) {
+          setError(data || "Invalid request data.");
+        } else if (status === 404) {
+          setError("User not found.");
+        } else if (status === 500) {
+          setError("Server error. Please try again later.");
+        } else {
+          setError(`Server error (${status}): ${data || "Unknown error"}`);
+        }
+      } else if (error.request) {
+        // Request was made but no response received
+        console.error("No response received:", error.request);
+        setError("Cannot connect to server. Please check if the backend is running.");
       } else {
+        // Something else happened
+        console.error("Other error:", error.message);
         setError("An error occurred. Please try again.");
       }
     }

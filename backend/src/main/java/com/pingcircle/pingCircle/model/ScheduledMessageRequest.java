@@ -13,8 +13,8 @@ public class ScheduledMessageRequest {
     private String message;
     private Long scheduledTime; // Unix timestamp when message should be sent
     private ScheduledMessage.MessageType messageType = ScheduledMessage.MessageType.SCHEDULED;
-    private String reminderTitle; // For reminder messages
-    private String reminderDescription; // For reminder messages
+    private String reminderTitle; 
+    private String reminderDescription; 
     
     // For birthday/anniversary reminders
     private String contactName;

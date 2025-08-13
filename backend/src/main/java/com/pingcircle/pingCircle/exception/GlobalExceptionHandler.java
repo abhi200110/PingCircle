@@ -26,7 +26,7 @@ public class GlobalExceptionHandler {
             errors.put(fieldName, errorMessage);                
         });
         
-        // Return 400 Bad Request with specific error messages
+       
         return ResponseEntity.badRequest().body(errors);
     }
 
@@ -37,13 +37,12 @@ public class GlobalExceptionHandler {
         error.put("error", exception.getMessage());
         error.put("type", "business_error");
         
-        // Return 400 Bad Request for business logic errors
+        
         return ResponseEntity.badRequest().body(error);
     }
 
     
-    //Handle unexpected system errors
-    //This catches any other exceptions that weren't handled above
+   
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, String>> handleSystemError(Exception exception) {
         Map<String, String> error = new HashMap<>();
@@ -51,7 +50,7 @@ public class GlobalExceptionHandler {
         error.put("type", "system_error");
         error.put("details", exception.getMessage());
         
-        // Return 500 Internal Server Error for system errors
+      
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 } 

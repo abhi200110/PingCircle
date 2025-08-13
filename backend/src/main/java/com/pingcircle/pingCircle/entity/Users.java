@@ -5,11 +5,10 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-import lombok.ToString;
 
+import java.time.LocalDateTime;
 import java.util.Set;
 
-@ToString
 @Data
 @Entity
 @Table(name = "users")
@@ -40,13 +39,7 @@ public class Users {
     private String password;
 
     @Column(name = "created_at")
-    private java.time.LocalDateTime createdAt;
-
-    @Column(name = "last_login")
-    private java.time.LocalDateTime lastLogin;
-
-    @Column(name = "failed_login_attempts")
-    private Integer failedLoginAttempts = 0;
+    private LocalDateTime createdAt;
 
     @ElementCollection
     @CollectionTable(name = "user_pinned_chats", joinColumns = @JoinColumn(name = "user_id"))
@@ -55,6 +48,6 @@ public class Users {
 
     @PrePersist
     protected void onCreate() {
-        createdAt = java.time.LocalDateTime.now();
+        createdAt = LocalDateTime.now();
     }
 }

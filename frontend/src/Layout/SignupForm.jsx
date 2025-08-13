@@ -1,5 +1,5 @@
-import { useState } from "react";
-import axios from "axios";
+import React, { useState } from "react";
+import api from "../config/axios";
 import { PropTypes } from "prop-types";
 
 const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
@@ -54,12 +54,12 @@ const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
 
     try {
       const payload = { username, name, email, password };
-      const response = await axios.post("http://localhost:8080/api/users/signup", payload);
+      const response = await api.post("/users/signup", payload);
       
-      // Handle the new response format that includes JWT token
+      // Handle the response format that includes JWT token
       if (response.data && response.data.token) {
-        // Store the JWT token
-        localStorage.setItem("chat-token", response.data.token);
+        // Store the JWT token in localStorage
+        localStorage.setItem("jwt-token", response.data.token);
         onSignupSuccess(username);
       } else {
         // Fallback for old response format
@@ -72,29 +72,25 @@ const SignupForm = ({ onSignupSuccess, onBackToLogin }) => {
       setEmail("");
       setPassword("");
     } catch (error) {
+      console.error("Signup error:", error);
+      
       if (error.response) {
-        // Handle different response formats
-        let errorMessage;
-        if (typeof error.response.data === 'string') {
-          // Backend returns string directly
-          errorMessage = error.response.data;
-        } else if (error.response.data && typeof error.response.data === 'object') {
-          // Backend returns object (validation errors or object with message)
-          if (error.response.data.message) {
-            // Object with message property
-            errorMessage = error.response.data.message;
-          } else {
-            // Validation errors object with field names as keys
-            const validationErrors = Object.values(error.response.data).join(', ');
-            errorMessage = validationErrors || "Validation failed. Please check your input.";
-          }
+        const status = error.response.status;
+        const data = error.response.data;
+        
+        if (status === 400) {
+          setError(data || "Invalid signup data. Please check your information.");
+        } else if (status === 409) {
+          setError("Username or email already exists. Please choose different credentials.");
+        } else if (status === 500) {
+          setError("Server error. Please try again later.");
         } else {
-          // Fallback error message
-          errorMessage = "Signup failed. Please check your input and try again.";
+          setError(`Signup failed (${status}): ${data || "Unknown error"}`);
         }
-        setError(errorMessage);
+      } else if (error.request) {
+        setError("Cannot connect to server. Please check if the backend is running.");
       } else {
-        setError("Network error. Please try again.");
+        setError("An error occurred during signup. Please try again.");
       }
     } finally {
       setIsSubmitting(false);

@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Set;
 
-
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/users")
@@ -25,13 +24,9 @@ public class UserController {
     private final UserService userService;
     private final ChatService chatService;
 
-    // ==================== AUTHENTICATION METHODS ==================== 
-
-    
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
-           
             String token = userService.authenticateUser(loginRequest.getUsername(), loginRequest.getPassword());
             LoginResponse response = new LoginResponse(token, loginRequest.getUsername(), "Login successful");
             return ResponseEntity.ok(response);
@@ -40,37 +35,26 @@ public class UserController {
         }
     }
 
-    
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody UserDto userDto) {
         try {
-            // Validation is automatically done by Spring using annotations in UserDto.java
-            // @NotBlank, @Size, @Email, etc. are automatically checked
-            
             Users user = userService.createUser(userDto);
-            
             String token = userService.authenticateUser(userDto.getUsername(), userDto.getPassword());
             LoginResponse response = new LoginResponse(token, userDto.getUsername(), "User created and logged in successfully");
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             String errorMessage = e.getMessage();
             
-            
             if (errorMessage.contains("already exists")) {
                 return ResponseEntity.status(HttpStatus.CONFLICT).body(errorMessage);
             }
-            
             
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);
         }
     }
 
-    // ==================== USER MANAGEMENT METHODS ====================
-
-    // Search users endpoint
     @GetMapping("/search")
     public ResponseEntity<List<Users>> searchUsers(@RequestParam String searchTerm) {
-        // Simple validation - check if search term is not empty
         if (searchTerm == null || searchTerm.trim().isEmpty()) {
             return ResponseEntity.badRequest().body(null);
         }
@@ -79,31 +63,26 @@ public class UserController {
         return ResponseEntity.ok(users);
     }
 
-    // Get user contacts endpoint
     @GetMapping("/contacts")
     public ResponseEntity<List<String>> getUserContacts(@RequestParam String username) {
         List<String> contacts = chatService.getUserContacts(username);
         return ResponseEntity.ok(contacts);
     }
 
-    
     @GetMapping("/onlineUsers")
     public ResponseEntity<Set<String>> getOnlineUsers() {
-        
         Set<String> onlineUsers = userService.getOnlineUsers();
         return ResponseEntity.ok(onlineUsers);
     }
 
-    // Get pinned users endpoint
     @GetMapping("/pinnedUsers")
     public ResponseEntity<Set<String>> getPinnedUsers(@RequestParam String username) {
         Set<String> pinnedUsers = userService.getPinnedUsers(username);
         return ResponseEntity.ok(pinnedUsers);
     }
 
-    // Pin/unpin user endpoint
     @PostMapping("/pinUser")
-    public ResponseEntity<?> pinUser(@RequestBody PinUserRequest request) {
+    public ResponseEntity<?> pinUser(@Valid @RequestBody PinUserRequest request) {
         try {
             if (request.isPin()) {
                 userService.pinUser(request.getUsername(), request.getPinnedUsername());
@@ -117,14 +96,12 @@ public class UserController {
         }
     }
 
-    
     @GetMapping("/isPinned")
     public ResponseEntity<Boolean> isUserPinned(@RequestParam String username, @RequestParam String pinnedUser) {
         boolean isPinned = userService.isUserPinned(username, pinnedUser);
         return ResponseEntity.ok(isPinned);
     }
 
-    
     @DeleteMapping("/deleteAccount")
     public ResponseEntity<?> deleteAccount(@RequestParam String username) {
         try {
