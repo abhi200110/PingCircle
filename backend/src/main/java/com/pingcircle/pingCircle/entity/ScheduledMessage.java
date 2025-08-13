@@ -37,7 +37,7 @@ public class ScheduledMessage {
     private String reminderTitle; // For reminder messages
     private String reminderDescription; // For reminder messages
 
-    // Message types
+
     public enum MessageType {
         SCHEDULED,    // Regular scheduled message
         REMINDER,     // Reminder message
