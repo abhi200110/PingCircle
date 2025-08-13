@@ -20,7 +20,7 @@ const PinnedUsers = ({ currentUser, onUserSelect, selectedUser, onlineUsers = ne
     
     try {
       setLoading(true);
-      const response = await api.get(`/users/pinned-users?username=${currentUser}`);
+      const response = await api.get(`/users/pinnedUsers?username=${currentUser}`);
       setPinnedUsers(response.data || []);
     } catch (error) {
       console.error('Error fetching pinned users:', error);
@@ -33,7 +33,7 @@ const PinnedUsers = ({ currentUser, onUserSelect, selectedUser, onlineUsers = ne
   const handleUnpin = async (pinnedUsername) => {
     try {
       setLoading(true);
-      const response = await api.post('/users/pin-user', {
+      const response = await api.post('/users/pinUser', {
         username: currentUser,
         pinnedUsername: pinnedUsername,
         pin: false

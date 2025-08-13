@@ -37,13 +37,13 @@ const UserDashboard = ({ username, onLogout, isOnline = true }) => {
       try {
         setIsDeleting(true);
         
-        const response = await api.delete(`/users/delete-account?username=${username}`);
+        const response = await api.delete(`/users/deleteAccount?username=${username}`);
         
         if (response.status === 200) {
           alert("Account deleted successfully. You will be logged out.");
           // Clear local storage and logout
           localStorage.removeItem("chat-username");
-          localStorage.removeItem("chat-token");
+          localStorage.removeItem("jwt-token");
           onLogout();
         }
       } catch (error) {

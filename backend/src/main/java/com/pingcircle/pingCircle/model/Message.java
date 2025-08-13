@@ -20,10 +20,7 @@ public class Message {
 
     private Status status;
     
-    /**
-     * Setter for status that can handle both Status enum and String values
-     * This allows the frontend to send string status values which get converted to enum
-     */
+   
     public void setStatus(Object status) {
         if (status instanceof Status) {
             this.status = (Status) status;
@@ -46,7 +43,7 @@ public class Message {
                     this.status = Status.READ;
                     break;
                 default:
-                    this.status = Status.MESSAGE; // Default to MESSAGE
+                    this.status = Status.MESSAGE; 
                     break;
             }
         } else {

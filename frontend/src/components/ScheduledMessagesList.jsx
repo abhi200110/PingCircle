@@ -19,8 +19,7 @@ const ScheduledMessagesList = ({ currentUser, onCancelMessage, onClose }) => {
 
       // First, test if backend is accessible
       try {
-        const testResponse = await api.get('/chat/test');
-        console.log('Backend connectivity test:', testResponse.data);
+
       } catch (testError) {
         console.error('Backend connectivity failed:', testError);
         setError('Backend server is not accessible. Please ensure the server is running.');
@@ -275,7 +274,7 @@ const ScheduledMessagesList = ({ currentUser, onCancelMessage, onClose }) => {
           <button
             onClick={async () => {
               try {
-                await api.post('/chat/trigger-scheduled-messages');
+        
                 alert('Scheduled messages processing triggered!');
                 fetchScheduledMessages(); // Refresh the list
               } catch (error) {

@@ -30,15 +30,12 @@ export const ChatPage = () => {
   const [privateChats, setPrivateChats] = useState(new Map()); // Map of private chats: {username: [messages]}
   const [username] = useState(localStorage.getItem("chat-username")); // Current logged-in user
   const [pinnedUsers, setPinnedUsers] = useState([]); // Array of pinned usernames
-  const [allUsers, setAllUsers] = useState([]); // All available users (currently unused)
-  const [isOnline, setIsOnline] = useState(true); // User online status
   const [isSending, setIsSending] = useState(false); // Loading state for sending messages
   const [isDeleting, setIsDeleting] = useState(false); // Loading state for deleting conversations
   const [onlineUsers, setOnlineUsers] = useState(new Set()); // Set of online users
   
   // Notification system state
   const [unreadMessages, setUnreadMessages] = useState(new Set()); // Set of usernames with unread messages
-  const [recentChats, setRecentChats] = useState(new Set()); // Set of usernames in recent chats
   
   // Scheduled message state
   const [showScheduleModal, setShowScheduleModal] = useState(false); // Show/hide schedule modal
@@ -52,14 +49,6 @@ export const ChatPage = () => {
   // ===== AUTHENTICATION CHECK =====
   // Redirect to login if no username is stored
   if (!username.trim()) {
-    navigate("/login");
-    return null;
-  }
-
-  // Check if JWT token exists and is valid
-  const token = localStorage.getItem("chat-token");
-  if (!token) {
-    localStorage.removeItem("chat-username");
     navigate("/login");
     return null;
   }
@@ -90,7 +79,6 @@ export const ChatPage = () => {
         } catch (error) {
           if (error.response?.status === 401 || error.response?.status === 403) {
             logger.warn("Token validation failed, redirecting to login");
-            localStorage.removeItem("chat-token");
             localStorage.removeItem("chat-username");
             navigate("/login");
           }
@@ -153,9 +141,6 @@ export const ChatPage = () => {
       setPrivateChats(new Map(privateChats));
     }
     
-    // Add to recent chats
-    setRecentChats(prev => new Set([...prev, user.username]));
-    
     // Clear unread messages for this user when selected
     setUnreadMessages(prev => {
       const newSet = new Set(prev);
@@ -215,8 +200,9 @@ export const ChatPage = () => {
   // Fetch pinned users from the backend
   const fetchPinnedUsers = async () => {
     try {
-      const response = await api.get(`/users/pinned-users?username=${username}`);
+      const response = await api.get(`/users/pinnedUsers?username=${username}`);
       setPinnedUsers(response.data || []); // Set pinned users or empty array
+      logger.debug('Fetched pinned users', { pinnedUsers: response.data });
     } catch (error) {
       console.error('Error fetching pinned users:', error);
       setPinnedUsers([]); // Set empty array on error
@@ -394,9 +380,6 @@ export const ChatPage = () => {
               sender: payloadData.senderName 
             });
             
-            // Add to recent chats if not already there
-            setRecentChats(prev => new Set([...prev, payloadData.senderName]));
-            
             // Add to unread messages if not currently viewing this chat
             if (tab !== payloadData.senderName) {
               setUnreadMessages(prev => new Set([...prev, payloadData.senderName]));
@@ -422,7 +405,6 @@ export const ChatPage = () => {
   // Called when WebSocket connection fails
   const onError = (err) => {
     logger.error("WebSocket connection error", { error: err.message });
-    setIsOnline(false); // Set user as offline when connection fails
     
     // Remove current user from online users list
     setOnlineUsers(prev => {
@@ -444,7 +426,6 @@ export const ChatPage = () => {
   const onConnect = () => {
     logger.info("Connected to WebSocket");
     connected.current = true;
-    setIsOnline(true); // Set user as online when connected
 
     // Add current user to online users list
     setOnlineUsers(prev => new Set([...prev, username]));
@@ -496,7 +477,7 @@ export const ChatPage = () => {
   const handleLogout = () => {
     userLeft(); // Send leave message
     localStorage.removeItem("chat-username"); // Clear stored username
-    localStorage.removeItem("chat-token"); // Clear JWT token
+    localStorage.removeItem("jwt-token"); // Clear JWT token
     navigate("/login"); // Redirect to login page
   };
 
@@ -592,9 +573,6 @@ export const ChatPage = () => {
         newSet.delete(name);
         return newSet;
       });
-      
-      // Add to recent chats
-      setRecentChats(prev => new Set([...prev, name]));
       
       // Mark all messages as read when opening the chat
       markAllMessagesAsRead(username, name);
@@ -799,20 +777,49 @@ export const ChatPage = () => {
 
   // ===== SCHEDULED MESSAGE FUNCTIONS =====
 
+  // Handle scheduling a message
   const handleScheduleMessage = async (requestData) => {
     try {
-      const response = await api.post('/chat/schedule-message', requestData);
-      logger.info('Message scheduled successfully:', response.data);
-      alert('Message scheduled successfully!');
+      logger.info("Scheduling message", { 
+        sender: requestData.senderName, 
+        receiver: requestData.receiverName,
+        scheduledTime: new Date(requestData.scheduledTime)
+      });
+
+      const response = await api.post("/chat/schedule-message", requestData);
+      
+      if (response.status === 200) {
+        logger.info("Message scheduled successfully", { messageId: response.data.id });
+        // Show success message or update UI
+        alert("Message scheduled successfully!");
+      }
     } catch (error) {
-      logger.error('Error scheduling message:', error);
-      throw new Error(error.response?.data || 'Failed to schedule message');
+      logger.error("Error scheduling message", { error: error.message });
+      const errorMessage = error.response?.data || error.message || "Failed to schedule message";
+      alert(`Error scheduling message: ${errorMessage}`);
     }
   };
 
-  const handleCancelScheduledMessage = (messageId) => {
-    logger.info('Scheduled message canceled:', messageId);
-    // The ScheduledMessagesList component will handle the API call
+  // Handle canceling a scheduled message
+  const handleCancelScheduledMessage = async (messageId) => {
+    try {
+      logger.info("Canceling scheduled message", { messageId });
+      
+      const response = await api.delete(`/chat/cancel-message/${messageId}?senderName=${username}`);
+      
+      if (response.status === 200) {
+        logger.info("Message canceled successfully");
+        alert("Message canceled successfully!");
+        // Refresh the scheduled messages list if it's open
+        if (showScheduledList) {
+          // The ScheduledMessagesList component will handle refreshing
+        }
+      }
+    } catch (error) {
+      logger.error("Error canceling scheduled message", { error: error.message });
+      const errorMessage = error.response?.data || error.message || "Failed to cancel message";
+      alert(`Error canceling message: ${errorMessage}`);
+    }
   };
 
   // Fetch initial online users
@@ -833,7 +840,6 @@ export const ChatPage = () => {
       {/* User Dashboard - Top */}
       <UserDashboard 
         username={username} 
-        isOnline={isOnline} 
         onLogout={handleLogout} 
       />
 
@@ -1128,9 +1134,9 @@ export const ChatPage = () => {
       <ScheduledMessageModal
         isOpen={showScheduleModal}
         onClose={() => setShowScheduleModal(false)}
-        onSchedule={handleScheduleMessage}
         currentUser={username}
         selectedUser={receiver}
+        onSchedule={handleScheduleMessage}
       />
 
       {/* Scheduled Messages List Modal */}
@@ -1139,8 +1145,8 @@ export const ChatPage = () => {
           <div className="modal-dialog modal-xl modal-dialog-centered">
             <ScheduledMessagesList
               currentUser={username}
-              onCancelMessage={handleCancelScheduledMessage}
               onClose={() => setShowScheduledList(false)}
+              onCancelMessage={handleCancelScheduledMessage}
             />
           </div>
         </div>
