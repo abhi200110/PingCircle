@@ -37,98 +37,19 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<Users, Long> {
     
-    /**
-     * Finds a user by their username
-     * 
-     * This method is primarily used for:
-     * - User authentication during login
-     * - User lookup for chat operations
-     * - Profile information retrieval
-     * 
-     * Returns Optional<Users> to handle cases where the username doesn't exist,
-     * preventing NullPointerException in the service layer.
-     * 
-     * @param username The username to search for (case-sensitive)
-     * @return Optional containing the user if found, empty Optional if not found
-     */
+    
     Optional<Users> findByUsername(String username);
     
-    /**
-     * Finds a user by their email address
-     * 
-     * This method is used for:
-     * - Email-based user lookup
-     * - Password reset functionality
-     * - User profile management
-     * 
-     * Returns Optional<Users> for null-safe operations, allowing the service layer
-     * to handle cases where the email doesn't exist gracefully.
-     * 
-     * @param email The email address to search for (case-sensitive)
-     * @return Optional containing the user if found, empty Optional if not found
-     */
+    // Find user by email for authentication purposes
     Optional<Users> findByEmail(String email);
     
-    /**
-     * Checks if a username already exists in the system
-     * 
-     * This method is used during user registration to validate that the
-     * chosen username is unique. Returns a boolean for efficient existence checking
-     * without loading the full user entity.
-     * 
-     * Use Cases:
-     * - Registration form validation
-     * - Username availability checking
-     * - Preventing duplicate usernames
-     * 
-     * @param username The username to check for existence
-     * @return true if username exists, false otherwise
-     */
+    // Check if a user exists by username usefull for registration validation
     boolean existsByUsername(String username);
-    
-    /**
-     * Checks if an email address already exists in the system
-     * 
-     * This method is used during user registration to validate that the
-     * email address is unique. Useful for preventing duplicate accounts
-     * and ensuring email uniqueness for password reset functionality.
-     * 
-     * Use Cases:
-     * - Registration form validation
-     * - Email availability checking
-     * - Preventing duplicate email addresses
-     * 
-     * @param email The email address to check for existence
-     * @return true if email exists, false otherwise
-     */
+
+    // Check if a user exists by email usefull for registration validation 
     boolean existsByEmail(String email);
     
-    /**
-     * Searches for users by username or name containing the search term
-     * 
-     * This query performs a case-insensitive search across both username and name fields.
-     * Uses LIKE operator with wildcards to find partial matches, making it useful
-     * for user discovery and contact finding features.
-     * 
-     * Search Logic:
-     * - Searches username field for partial matches
-     * - OR searches name field for partial matches
-     * - Uses % wildcards for flexible matching
-     * - Case-insensitive search for better user experience
-     * 
-     * Use Cases:
-     * - User search functionality
-     * - Finding users to start conversations
-     * - Contact discovery
-     * - User directory features
-     * 
-     * Example Searches:
-     * - "john" finds users with username "john_doe" or name "John Smith"
-     * - "smith" finds users with name "John Smith" or "Jane Smith"
-     * 
-     * @param searchTerm The search query (partial username or name)
-     * @return List of users matching the search criteria
-     */
+    
     @Query("SELECT u FROM Users u WHERE u.username LIKE %:searchTerm% OR u.name LIKE %:searchTerm%")
     List<Users> searchUsers(@Param("searchTerm") String searchTerm);
 }
