@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./button.css";
 import SignupForm from "./SignupForm";
-import api from "../config/axios";
+import api, { setJwtToken } from "../config/axios";
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -13,10 +13,12 @@ export const Login = () => {
   const [error, setError] = useState("");
   const [isSignup, setIsSignup] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("chat-username");
-    if (storedUsername) {
+    const storedToken = localStorage.getItem("jwt-token");
+    if (storedUsername && storedToken) {
       navigate("/chat");
     }
   }, [navigate]);
@@ -24,13 +26,16 @@ export const Login = () => {
   const handleLogin = async () => {
     try {
       setError("");
+      setIsLoading(true);
 
       if (!username.trim() || !password.trim()) {
         setError("Please enter both username and password.");
+        setIsLoading(false);
         return;
       }
 
       console.log("Attempting login for username:", username);
+      console.log("API endpoint:", "/users/login");
       
       const response = await api.post("/users/login", {
         username: username.trim(),
@@ -40,8 +45,9 @@ export const Login = () => {
       console.log("Login response:", response);
 
       if (response.status === 200 && response.data.token) {
+        // Store JWT token using the new function
+        setJwtToken(response.data.token);
         localStorage.setItem("chat-username", username);
-        localStorage.setItem("jwt-token", response.data.token);
         console.log("Login successful, navigating to chat");
         navigate("/chat");
       } else {
@@ -76,6 +82,8 @@ export const Login = () => {
         console.error("Other error:", error.message);
         setError("An error occurred. Please try again.");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -136,6 +144,11 @@ export const Login = () => {
             background-color: #0b5ed7;
           }
 
+          .login-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+          }
+
           .link-button {
             color: #0d6efd;
           }
@@ -169,7 +182,8 @@ export const Login = () => {
               placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              onKeyUp={(e) => e.key === "Enter" && handleLogin()}
+              onKeyUp={(e) => e.key === "Enter" && !isLoading && handleLogin()}
+              disabled={isLoading}
             />
 
             <div className="input-group mb-3">
@@ -179,26 +193,33 @@ export const Login = () => {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onKeyUp={(e) => e.key === "Enter" && handleLogin()}
+                onKeyUp={(e) => e.key === "Enter" && !isLoading && handleLogin()}
+                disabled={isLoading}
               />
               <button
                 type="button"
                 className="btn btn-outline-secondary"
                 onClick={() => setShowPassword(!showPassword)}
                 tabIndex={-1}
+                disabled={isLoading}
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
             </div>
 
-            <button className="btn login-btn w-100 mb-3" onClick={handleLogin}>
-              Connect
+            <button 
+              className="btn login-btn w-100 mb-3" 
+              onClick={handleLogin}
+              disabled={isLoading}
+            >
+              {isLoading ? "Connecting..." : "Connect"}
             </button>
 
             <div className="text-center">
               <button
                 className="btn btn-link link-button"
                 onClick={() => setIsSignup(true)}
+                disabled={isLoading}
               >
                 Don't have an account? <strong>Sign up</strong>
               </button>
