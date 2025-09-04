@@ -47,7 +47,6 @@ const UserDashboard = ({ username, onLogout, isOnline = true }) => {
           onLogout();
         }
       } catch (error) {
-        console.error('Error deleting account:', error);
         alert(`Failed to delete account: ${error.response?.data || error.message}`);
       } finally {
         setIsDeleting(false);

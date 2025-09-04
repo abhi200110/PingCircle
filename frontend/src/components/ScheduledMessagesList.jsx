@@ -15,13 +15,11 @@ const ScheduledMessagesList = ({ currentUser, onCancelMessage, onClose }) => {
       setIsLoading(true);
       setError('');
       
-      console.log('Fetching scheduled messages for user:', currentUser);
 
       // First, test if backend is accessible
       try {
 
       } catch (testError) {
-        console.error('Backend connectivity failed:', testError);
         setError('Backend server is not accessible. Please ensure the server is running.');
         return;
       }
@@ -32,9 +30,6 @@ const ScheduledMessagesList = ({ currentUser, onCancelMessage, onClose }) => {
         api.get(`/chat/reminders?senderName=${currentUser}`)
       ]);
 
-      console.log('Scheduled messages response:', scheduledRes.data);
-      console.log('Pending messages response:', pendingRes.data);
-      console.log('Reminders response:', remindersRes.data);
 
       setScheduledMessages(scheduledRes.data);
       setPendingMessages(pendingRes.data);
@@ -42,7 +37,6 @@ const ScheduledMessagesList = ({ currentUser, onCancelMessage, onClose }) => {
     } catch (error) {
       const errorMessage = error.response?.data || error.message || 'Failed to fetch scheduled messages';
       setError(errorMessage);
-      console.error('Error fetching scheduled messages:', error);
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +60,6 @@ const ScheduledMessagesList = ({ currentUser, onCancelMessage, onClose }) => {
     } catch (error) {
       const errorMessage = error.response?.data || error.message || 'Failed to cancel message';
       setError(errorMessage);
-      console.error('Error canceling message:', error);
     }
   };
 

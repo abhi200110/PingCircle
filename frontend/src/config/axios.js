@@ -40,7 +40,6 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      console.log('Authentication error:', error.response?.status, '- Redirecting to login');
       removeJwtToken();
       localStorage.removeItem('chat-username');
       window.location.href = '/login';

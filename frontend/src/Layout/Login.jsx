@@ -34,31 +34,24 @@ export const Login = () => {
         return;
       }
 
-      console.log("Attempting login for username:", username);
-      console.log("API endpoint:", "/users/login");
       
       const response = await api.post("/users/login", {
         username: username.trim(),
         password: password.trim(),
       });
 
-      console.log("Login response:", response);
 
       if (response.status === 200 && response.data.token) {
         // Store JWT token using the new function
         setJwtToken(response.data.token);
         localStorage.setItem("chat-username", username);
-        console.log("Login successful, navigating to chat");
         navigate("/chat");
       } else {
         setError("Invalid response from server. Please try again.");
       }
     } catch (error) {
-      console.error("Login error details:", error);
-      
       if (error.response) {
         // Server responded with error status
-        console.error("Server error response:", error.response);
         const status = error.response.status;
         const data = error.response.data;
         
@@ -75,11 +68,9 @@ export const Login = () => {
         }
       } else if (error.request) {
         // Request was made but no response received
-        console.error("No response received:", error.request);
         setError("Cannot connect to server. Please check if the backend is running.");
       } else {
         // Something else happened
-        console.error("Other error:", error.message);
         setError("An error occurred. Please try again.");
       }
     } finally {

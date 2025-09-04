@@ -7,7 +7,6 @@ import com.pingcircle.pingCircle.model.ScheduledMessageRequest;
 import com.pingcircle.pingCircle.model.Status;
 import com.pingcircle.pingCircle.repository.ScheduledMessageRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -18,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ScheduledMessageService {
 
     private final ScheduledMessageRepository scheduledMessageRepository;
@@ -29,12 +27,6 @@ public class ScheduledMessageService {
      * Schedule a new message
      */
     public ScheduledMessage scheduleMessage(ScheduledMessageRequest request) {
-        log.info("=== SCHEDULING MESSAGE ===");
-        log.info("From: {} To: {}", request.getSenderName(), request.getReceiverName());
-        log.info("Scheduled time (timestamp): {}", request.getScheduledTime());
-        log.info("Scheduled time (readable): {}", new java.util.Date(request.getScheduledTime()));
-        log.info("Current time: {}", System.currentTimeMillis());
-        log.info("Current time (readable): {}", new java.util.Date(System.currentTimeMillis()));
         
         // Validate request
         String validationError = request.getValidationError();
@@ -55,10 +47,6 @@ public class ScheduledMessageService {
         );
 
         ScheduledMessage savedMessage = scheduledMessageRepository.save(scheduledMessage);
-        log.info("Message scheduled with ID: {} at time: {} ({})", 
-                savedMessage.getId(), 
-                savedMessage.getScheduledTime(),
-                new java.util.Date(savedMessage.getScheduledTime()));
         
         return savedMessage;
     }
@@ -67,7 +55,6 @@ public class ScheduledMessageService {
      * Get all scheduled messages for a user
      */
     public List<ScheduledMessage> getScheduledMessages(String senderName) {
-        log.info("Getting scheduled messages for user: {}", senderName);
         return scheduledMessageRepository.findBySenderName(senderName);
     }
 
@@ -75,7 +62,6 @@ public class ScheduledMessageService {
      * Get pending (unsent) scheduled messages for a user
      */
     public List<ScheduledMessage> getPendingMessages(String senderName) {
-        log.info("Getting pending messages for user: {}", senderName);
         return scheduledMessageRepository.findPendingBySenderName(senderName);
     }
 
@@ -83,7 +69,6 @@ public class ScheduledMessageService {
      * Get reminders for a user
      */
     public List<ScheduledMessage> getReminders(String senderName) {
-        log.info("Getting reminders for user: {}", senderName);
         return scheduledMessageRepository.findRemindersBySender(senderName);
     }
 
@@ -91,7 +76,6 @@ public class ScheduledMessageService {
      * Cancel a scheduled message
      */
     public boolean cancelScheduledMessage(Long messageId, String senderName) {
-        log.info("Canceling scheduled message {} for user {}", messageId, senderName);
         
         Optional<ScheduledMessage> optionalMessage = scheduledMessageRepository.findById(messageId);
         if (optionalMessage.isPresent()) {
@@ -105,7 +89,6 @@ public class ScheduledMessageService {
             // Only allow cancellation if message hasn't been sent yet
             if (!message.getIsSent()) {
                 scheduledMessageRepository.delete(message);
-                log.info("Scheduled message {} canceled", messageId);
                 return true;
             } else {
                 throw new RuntimeException("Cannot cancel a message that has already been sent");
@@ -120,7 +103,6 @@ public class ScheduledMessageService {
      */
     public ScheduledMessage createBirthdayReminder(String senderName, String receiverName, 
                                                  String contactName, String eventDate) {
-        log.info("Creating birthday reminder for {} from {} to {}", contactName, senderName, receiverName);
         
         // Parse the event date (MM-dd format)
         LocalDate eventLocalDate = LocalDate.parse(eventDate, DateTimeFormatter.ofPattern("MM-dd"));
@@ -152,7 +134,6 @@ public class ScheduledMessageService {
         );
         
         ScheduledMessage savedMessage = scheduledMessageRepository.save(scheduledMessage);
-        log.info("Birthday reminder created with ID: {}", savedMessage.getId());
         
         return savedMessage;
     }
@@ -162,7 +143,6 @@ public class ScheduledMessageService {
      */
     public ScheduledMessage createAnniversaryReminder(String senderName, String receiverName, 
                                                     String contactName, String eventDate) {
-        log.info("Creating anniversary reminder for {} from {} to {}", contactName, senderName, receiverName);
         
         // Parse the event date (MM-dd format)
         LocalDate eventLocalDate = LocalDate.parse(eventDate, DateTimeFormatter.ofPattern("MM-dd"));
@@ -194,7 +174,6 @@ public class ScheduledMessageService {
         );
         
         ScheduledMessage savedMessage = scheduledMessageRepository.save(scheduledMessage);
-        log.info("Anniversary reminder created with ID: {}", savedMessage.getId());
         
         return scheduledMessage;
     }
@@ -204,33 +183,17 @@ public class ScheduledMessageService {
      */
     @Scheduled(fixedRate = 30000) // Run every 30 seconds for testing
     public void processScheduledMessages() {
-        log.info("=== Scheduled Task Running ===");
-        log.info("Current time: {}", System.currentTimeMillis());
-        log.info("Current time (readable): {}", new java.util.Date(System.currentTimeMillis()));
-        
         long currentTime = System.currentTimeMillis();
         List<ScheduledMessage> messagesToSend = scheduledMessageRepository.findMessagesToSend(currentTime);
         
-        log.info("Found {} messages to send", messagesToSend.size());
-        
         if (!messagesToSend.isEmpty()) {
-            log.info("Processing {} scheduled messages to send", messagesToSend.size());
-            
             for (ScheduledMessage scheduledMessage : messagesToSend) {
                 try {
-                    log.info("Sending scheduled message ID: {}, scheduled for: {} ({}), current time: {} ({})", 
-                            scheduledMessage.getId(), 
-                            scheduledMessage.getScheduledTime(),
-                            new java.util.Date(scheduledMessage.getScheduledTime()),
-                            currentTime,
-                            new java.util.Date(currentTime));
                     sendScheduledMessage(scheduledMessage);
                 } catch (Exception e) {
-                    log.error("Error sending scheduled message {}: {}", scheduledMessage.getId(), e.getMessage(), e);
+                    // Error sending scheduled message - continue with next message
                 }
             }
-        } else {
-            log.debug("No scheduled messages to send at this time");
         }
     }
 
@@ -238,12 +201,6 @@ public class ScheduledMessageService {
      * Send a scheduled message
      */
     private void sendScheduledMessage(ScheduledMessage scheduledMessage) {
-        log.info("=== SENDING SCHEDULED MESSAGE ===");
-        log.info("Message ID: {}", scheduledMessage.getId());
-        log.info("From: {} To: {}", scheduledMessage.getSenderName(), scheduledMessage.getReceiverName());
-        log.info("Message: {}", scheduledMessage.getMessage());
-        log.info("Scheduled Time: {}", scheduledMessage.getScheduledTime());
-        log.info("Current Time: {}", System.currentTimeMillis());
         
         // Create a regular message from the scheduled message
         Message message = new Message();
@@ -252,14 +209,10 @@ public class ScheduledMessageService {
         message.setMessage(scheduledMessage.getMessage());
         message.setStatus(scheduledMessage.getStatus());
         
-        log.info("Created Message object: {}", message);
-        
         // Save to chat history
         try {
             ChatMessage savedChatMessage = chatService.saveMessage(message);
-            log.info("Message saved to chat history with ID: {}", savedChatMessage.getId());
         } catch (Exception e) {
-            log.error("Error saving message to chat history: {}", e.getMessage(), e);
             throw e;
         }
         
@@ -270,9 +223,8 @@ public class ScheduledMessageService {
                     "/private", 
                     message
             );
-            log.info("Scheduled message sent to receiver: {}", scheduledMessage.getReceiverName());
         } catch (Exception e) {
-            log.info("Receiver {} is offline, message stored for later delivery", scheduledMessage.getReceiverName());
+            // Receiver is offline, message stored for later delivery
         }
         
         // Also send back to sender
@@ -282,22 +234,19 @@ public class ScheduledMessageService {
                     "/private", 
                     message
             );
-            log.info("Scheduled message sent back to sender: {}", scheduledMessage.getSenderName());
         } catch (Exception e) {
-            log.warn("Could not send scheduled message back to sender: {}", scheduledMessage.getSenderName());
+            // Could not send scheduled message back to sender
         }
         
         // Mark as sent
         scheduledMessage.setIsSent(true);
         scheduledMessageRepository.save(scheduledMessage);
-        log.info("Scheduled message {} marked as sent", scheduledMessage.getId());
     }
 
     /**
      * Delete all scheduled messages for a user (when account is deleted)
      */
     public void deleteScheduledMessagesForUser(String username) {
-        log.info("Deleting all scheduled messages for user: {}", username);
         scheduledMessageRepository.deleteBySenderName(username);
     }
 

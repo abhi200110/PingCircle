@@ -5,7 +5,6 @@ import com.pingcircle.pingCircle.model.UserDto;
 import com.pingcircle.pingCircle.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +15,6 @@ import java.util.Set;
 // User service for handling user-related operations
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class UserService {
 
     // Repository for user data access operations
@@ -238,9 +236,7 @@ public class UserService {
             // Delete the user account
             userRepository.delete(user);
         
-        log.info("Account deleted successfully for user:{}", username);
     } catch (Exception e) {
-        log.error("Failed to delete account for user: {}", username, e);
         throw new RuntimeException("Failed to delete account: " + e.getMessage());
     }
     }
