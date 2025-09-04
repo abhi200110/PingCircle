@@ -30,7 +30,6 @@ const useWebSocket = (username) => {
       // Join the chat
       userJoin();
     }, (error) => {
-      console.error('WebSocket connection error:', error);
       setConnected(false);
     });
   }, [username]);
@@ -68,15 +67,13 @@ const useWebSocket = (username) => {
         mediaType: mediaType,
         status: 'MESSAGE'
       };
-      console.log('Sending public message:', chatMessage);
       try {
         stompClient.current.send('/app/message', {}, JSON.stringify(chatMessage));
-        console.log('Public message sent successfully');
       } catch (error) {
-        console.error('Error sending public message:', error);
+        // Error sending public message
       }
     } else {
-      console.error('Cannot send message: WebSocket not connected');
+      // Cannot send message: WebSocket not connected
     }
   }, [username, connected]);
 
@@ -90,27 +87,20 @@ const useWebSocket = (username) => {
         mediaType: mediaType,
         status: 'MESSAGE'
       };
-      console.log('Sending private message:', chatMessage);
       try {
         stompClient.current.send('/app/private-message', {}, JSON.stringify(chatMessage));
-        console.log('Private message sent successfully');
       } catch (error) {
-        console.error('Error sending private message:', error);
+        // Error sending private message
       }
     } else {
-      console.error('Cannot send message: WebSocket not connected');
+      // Cannot send message: WebSocket not connected
     }
   }, [username, connected]);
 
   const handlePublicMessage = useCallback((payloadData) => {
-    console.log('Processing public message:', payloadData);
-    console.log('Message status:', payloadData.status);
-    console.log('Message sender:', payloadData.senderName);
-    console.log('Message content:', payloadData.message);
     
     switch (payloadData.status) {
       case 'JOIN':
-        console.log('User joined:', payloadData.senderName);
         if (payloadData.senderName !== username) {
           setPrivateChats(prev => {
             const newChats = new Map(prev);
@@ -122,7 +112,6 @@ const useWebSocket = (username) => {
         }
         break;
       case 'LEAVE':
-        console.log('User left:', payloadData.senderName);
         if (payloadData.senderName !== username) {
           setPrivateChats(prev => {
             const newChats = new Map(prev);
@@ -132,31 +121,21 @@ const useWebSocket = (username) => {
         }
         break;
       case 'MESSAGE':
-        console.log('Adding public message to chat');
         setPublicChats(prev => {
-          console.log('Previous public chats count:', prev.length);
           const newChats = [...prev, payloadData];
-          console.log('New public chats count:', newChats.length);
           return newChats;
         });
         break;
       default:
-        console.warn('Unknown status received:', payloadData.status);
     }
   }, [username]);
 
   const handlePrivateMessage = useCallback((payloadData) => {
-    console.log('Processing private message:', payloadData);
-    console.log('Message sender:', payloadData.senderName);
-    console.log('Message receiver:', payloadData.receiverName);
-    console.log('Message content:', payloadData.message);
     
     setPrivateChats(prev => {
       const newChats = new Map(prev);
       const userChats = newChats.get(payloadData.senderName) || [];
-      console.log('Previous messages for', payloadData.senderName + ':', userChats.length);
       const updatedChats = [...userChats, payloadData];
-      console.log('Updated messages for', payloadData.senderName + ':', updatedChats.length);
       newChats.set(payloadData.senderName, updatedChats);
       return newChats;
     });

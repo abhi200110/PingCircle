@@ -46,7 +46,6 @@ const SearchBar = ({ onUserSelect }) => {
       );
       setSearchResults(response.data || []);
     } catch (error) {
-      console.error("Error searching for user:", error);
       if (error.response && error.response.status === 404) {
         setError("No users found.");
       } else {

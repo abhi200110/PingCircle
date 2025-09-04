@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import api from '../config/axios';
-import logger from '../utils/logger';
 
 const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange, onDeleteConversation, isOnline = false, hasUnreadMessage = false, pinnedUsers = [] }) => {
   const [isPinned, setIsPinned] = useState(false);
@@ -14,10 +13,6 @@ const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange
   // Update pin status when pinnedUsers prop changes
   useEffect(() => {
     const isInPinnedList = pinnedUsers.includes(user.username);
-    logger.debug('Pin status updated from props', { 
-      username: user.username, 
-      isPinned: isInPinnedList 
-    });
     setIsPinned(isInPinnedList);
   }, [pinnedUsers, user.username]);
 
@@ -27,11 +22,6 @@ const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange
     try {
       // First check if user is in the pinnedUsers array (faster)
       const isInPinnedList = pinnedUsers.includes(user.username);
-      logger.debug('Checking pin status', { 
-        currentUser, 
-        username: user.username, 
-        inPinnedList: isInPinnedList 
-      });
       
       if (isInPinnedList) {
         setIsPinned(true);
@@ -40,13 +30,8 @@ const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange
       
       // If not in the list, double-check with API
       const response = await api.get(`/users/isPinned?username=${currentUser}&pinnedUsername=${user.username}`);
-      logger.debug('Pin status response', { response: response.data });
       setIsPinned(response.data);
     } catch (error) {
-      logger.error('Error checking pin status', { 
-        error: error.message, 
-        details: error.response?.data 
-      });
       setIsPinned(false); // Default to false on error
     }
   };
@@ -73,25 +58,17 @@ const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange
         pin: newPinStatus
       });
       
-      logger.debug('Pin response', { response: response.status });
       
       if (response.status === 200) {
         // Call parent's onPinChange to update the main state
         if (onPinChange) {
           onPinChange(user.username, newPinStatus);
         }
-        logger.debug(`User ${newPinStatus ? 'pinned' : 'unpinned'} successfully`, { 
-          username: user.username 
-        });
       } else {
         // Revert optimistic update on error
         setIsPinned(!newPinStatus);
       }
     } catch (error) {
-      logger.error('Error toggling pin', { 
-        error: error.message, 
-        details: error.response?.data 
-      });
       // Revert optimistic update on error
       setIsPinned(!isPinned);
       alert(`Failed to ${isPinned ? 'unpin' : 'pin'} user: ${error.response?.data || error.message}`);
@@ -111,7 +88,6 @@ const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange
           await onDeleteConversation(user.username);
         }
       } catch (error) {
-        console.error('Error deleting conversation:', error);
       } finally {
         setDeleting(false);
       }

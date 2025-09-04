@@ -7,16 +7,13 @@ import com.pingcircle.pingCircle.model.ScheduledMessageRequest;
 import com.pingcircle.pingCircle.model.Status;
 import com.pingcircle.pingCircle.service.ChatService;
 import com.pingcircle.pingCircle.service.ScheduledMessageService;
-import com.pingcircle.pingCircle.service.UserService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,7 +25,6 @@ import com.pingcircle.pingCircle.repository.ScheduledMessageRepository;
 
 @RestController
 @RequiredArgsConstructor
-@Slf4j
 @RequestMapping("/api/chat")
 public class ChatController {
 
@@ -45,56 +41,37 @@ public class ChatController {
     @MessageMapping("/message")
     @SendTo("/chatroom/public")
     public Message receiveMessage(Message message) {
-        log.info("=== GROUP MESSAGE RECEIVED ===");
-        log.info("Original message: {}", message);
-        log.info("Message status: {}", message.getStatus());
-        log.info("Message content: {}", message.getMessage());
-        log.info("Sender: {}", message.getSenderName());
-        
         
         message.setReceiverName("PUBLIC");
-        log.info("Set receiver to PUBLIC");
-        
         
         Status currentStatus = message.getStatus();
         if (currentStatus == null) {
             
             message.setStatus(Status.MESSAGE);
-            log.info("Status was null, set to MESSAGE");
         }
         
         
         if (Status.JOIN.equals(message.getStatus())) {
             String username = message.getSenderName();
             onlineUsers.add(username);
-            log.info("User joined: {}. Online users: {}", username, onlineUsers);
+           
         } else if (Status.LEAVE.equals(message.getStatus())) {
             String username = message.getSenderName();
             onlineUsers.remove(username);
-            log.info("User left: {}. Online users: {}", username, onlineUsers);
         }
         
        
         boolean isMessageStatus = Status.MESSAGE.equals(message.getStatus());
         boolean hasValidContent = message.getMessage() != null && !message.getMessage().trim().isEmpty();
         
-        log.info("Is message status: {}", isMessageStatus);
-        log.info("Has valid content: {}", hasValidContent);
-        log.info("Message content: '{}'", message.getMessage());
         
         if (isMessageStatus && hasValidContent) {
-            log.info("Saving group message to database: {}", message);
             
             
             ChatMessage savedMessage = chatService.saveMessage(message);
-            log.info("Group message saved to database with ID: {}", savedMessage.getId());
         } else {
-            log.info("Skipping database save for system message (JOIN/LEAVE) or empty message");
-            log.info("Status: {}, Content: {}", message.getStatus(), message.getMessage());
         }
 
-        
-        log.info("Broadcasting group message: {}", message);
         return message;
     }
 
@@ -104,7 +81,6 @@ public class ChatController {
         try {
             String receiver = message.getReceiverName();
             String sender = message.getSenderName();
-            log.info("Received private message from {} to {}", sender, receiver);
             
             
             if (message.getStatus() == null) {
@@ -113,23 +89,18 @@ public class ChatController {
             
             
             ChatMessage savedMessage = chatService.saveMessage(message);
-            log.info("Private message saved to database with ID: {}", savedMessage.getId());
             
             
             try {
                 
                 simpMessagingTemplate.convertAndSendToUser(receiver, "/private", message);
-                log.info("Private message sent to receiver: {}", receiver);
-                
-                
                 simpMessagingTemplate.convertAndSendToUser(sender, "/private", message);
-                log.info("Private message sent back to sender: {}", sender);
             } catch (Exception e) {
-                log.info("User {} is offline, message stored for later delivery", receiver);
+                // User is offline, message stored for later delivery
                 
             }
         } catch (Exception e) {
-            log.error("Error processing private message: {}", e.getMessage(), e);
+            // Error processing private message
         }
     }
 
@@ -143,7 +114,6 @@ public class ChatController {
     @GetMapping("/online-users")
     public ResponseEntity<Set<String>> getOnlineUsersEndpoint() {
         Set<String> onlineUsersList = new java.util.HashSet<>(onlineUsers);
-        log.info("Current online users: {}", onlineUsersList);
         return ResponseEntity.ok(onlineUsersList);
     }
 
@@ -240,7 +210,6 @@ public class ChatController {
             ScheduledMessage scheduledMessage = scheduledMessageService.scheduleMessage(request);
             return ResponseEntity.ok(scheduledMessage);
         } catch (Exception e) {
-            log.error("Error scheduling message: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error scheduling message: " + e.getMessage());
         }
@@ -253,7 +222,6 @@ public class ChatController {
             List<ScheduledMessage> messages = scheduledMessageService.getScheduledMessages(senderName);
             return ResponseEntity.ok(messages);
         } catch (Exception e) {
-            log.error("Error getting scheduled messages: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -265,7 +233,6 @@ public class ChatController {
             List<ScheduledMessage> messages = scheduledMessageService.getPendingMessages(senderName);
             return ResponseEntity.ok(messages);
         } catch (Exception e) {
-            log.error("Error getting pending messages: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -277,7 +244,6 @@ public class ChatController {
             List<ScheduledMessage> reminders = scheduledMessageService.getReminders(senderName);
             return ResponseEntity.ok(reminders);
         } catch (Exception e) {
-            log.error("Error getting reminders: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -296,7 +262,6 @@ public class ChatController {
                         .body("Message not found or already sent");
             }
         } catch (Exception e) {
-            log.error("Error canceling scheduled message: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error canceling message: " + e.getMessage());
         }
@@ -314,7 +279,6 @@ public class ChatController {
                     senderName, receiverName, contactName, eventDate);
             return ResponseEntity.ok(reminder);
         } catch (Exception e) {
-            log.error("Error creating birthday reminder: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error creating birthday reminder: " + e.getMessage());
         }
@@ -332,7 +296,6 @@ public class ChatController {
                     senderName, receiverName, contactName, eventDate);
             return ResponseEntity.ok(reminder);
         } catch (Exception e) {
-            log.error("Error creating anniversary reminder: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Error creating anniversary reminder: " + e.getMessage());
         }
@@ -342,11 +305,9 @@ public class ChatController {
     @PostMapping("/test-scheduled-processing")
     public ResponseEntity<?> testScheduledProcessing() {
         try {
-            log.info("=== MANUAL TRIGGER OF SCHEDULED MESSAGE PROCESSING ===");
             scheduledMessageService.processScheduledMessages();
             return ResponseEntity.ok("Scheduled message processing completed");
         } catch (Exception e) {
-            log.error("Error in manual scheduled processing: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error processing scheduled messages: " + e.getMessage());
         }
@@ -356,13 +317,9 @@ public class ChatController {
     @GetMapping("/test-scheduled-messages")
     public ResponseEntity<?> testScheduledMessages() {
         try {
-            log.info("=== CHECKING SCHEDULED MESSAGES IN DATABASE ===");
             long currentTime = System.currentTimeMillis();
             List<ScheduledMessage> allMessages = scheduledMessageRepository.findAll();
             List<ScheduledMessage> messagesToSend = scheduledMessageRepository.findMessagesToSend(currentTime);
-            
-            log.info("Total scheduled messages: {}", allMessages.size());
-            log.info("Messages ready to send: {}", messagesToSend.size());
             
             return ResponseEntity.ok(Map.of(
                 "totalMessages", allMessages.size(),
@@ -371,7 +328,6 @@ public class ChatController {
                 "currentTimeReadable", new java.util.Date(currentTime)
             ));
         } catch (Exception e) {
-            log.error("Error checking scheduled messages: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error checking scheduled messages: " + e.getMessage());
         }

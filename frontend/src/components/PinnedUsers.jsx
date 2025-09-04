@@ -1,17 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../config/axios';
-import logger from '../utils/logger';
 
 const PinnedUsers = ({ currentUser, onUserSelect, selectedUser, onlineUsers = new Set(), unreadMessages = new Set(), pinnedUsers = [], onUnpin }) => {
   const [loading, setLoading] = useState(false);
   
-  // Debug logging
-  logger.debug('PinnedUsers props', { 
-    currentUser, 
-    onlineUsers: Array.from(onlineUsers), 
-    unreadMessages: Array.from(unreadMessages),
-    pinnedUsers 
-  });
 
   // Remove the useEffect since we're now getting pinnedUsers as props
 
@@ -23,7 +15,6 @@ const PinnedUsers = ({ currentUser, onUserSelect, selectedUser, onlineUsers = ne
       const response = await api.get(`/users/pinnedUsers?username=${currentUser}`);
       setPinnedUsers(response.data || []);
     } catch (error) {
-      console.error('Error fetching pinned users:', error);
       setPinnedUsers([]); // Set empty array on error
     } finally {
       setLoading(false);
