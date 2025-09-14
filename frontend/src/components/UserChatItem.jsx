@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../config/axios';
+import logger from '../utils/logger';
 
 const UserChatItem = ({ user, currentUser, isSelected, onUserSelect, onPinChange, onDeleteConversation, isOnline = false, hasUnreadMessage = false, pinnedUsers = [] }) => {
   const [isPinned, setIsPinned] = useState(false);
