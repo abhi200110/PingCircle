@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../config/axios';
+import logger from '../utils/logger';
 
 const PinnedUsers = ({ currentUser, onUserSelect, selectedUser, onlineUsers = new Set(), unreadMessages = new Set(), pinnedUsers = [], onUnpin }) => {
   const [loading, setLoading] = useState(false);

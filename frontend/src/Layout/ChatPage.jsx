@@ -11,16 +11,7 @@ import MessageInput from "../components/MessageInput"; // Component for message 
 import ScheduledMessageModal from "../components/ScheduledMessageModal"; // Component for scheduling messages
 import ScheduledMessagesList from "../components/ScheduledMessagesList"; // Component for viewing scheduled messages
 import api from "../config/axios"; // Configured axios instance with JWT authentication
-// Simple console-based logger for browser environment
-const logger = {
-  info: (message, data = {}) => console.log(`[INFO] ${message}`, data),
-  debug: (message, data = {}) => console.log(`[DEBUG] ${message}`, data),
-  warn: (message, data = {}) => console.warn(`[WARN] ${message}`, data),
-  error: (message, data = {}) => console.error(`[ERROR] ${message}`, data),
-  websocket: (message, data = {}) => console.log(`[WEBSOCKET] ${message}`, data),
-  api: (message, data = {}) => console.log(`[API] ${message}`, data),
-  chat: (message, data = {}) => console.log(`[CHAT] ${message}`, data)
-};
+import logger from "../utils/logger"; // Shared logging utility
 
 // Global WebSocket client variable
 var stompClient = null;
